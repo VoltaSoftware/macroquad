@@ -90,15 +90,17 @@ impl<'a> InputText<'a> {
             label_size.y.max(19.),
         ));
 
-        let pos = self
-            .pos
-            .unwrap_or_else(|| context.window.cursor.fit(size, Layout::Vertical));
+        let pos = context
+            .window
+            .cursor
+            .fit(size, self.pos.map_or(Layout::Vertical, Layout::Free));
 
         let editbox_area_w = if self.label.is_empty() {
             size.x
         } else {
             size.x * self.ratio - 15.
         };
+
         let mut editbox = Editbox::new(self.id, Vec2::new(editbox_area_w, size.y))
             .password(self.password)
             .position(pos)
