@@ -4,11 +4,14 @@ use crate::{
 };
 
 use std::ops::Range;
+use glam::Vec2;
 
 pub struct Slider<'a> {
     id: Id,
     label: &'a str,
     range: Range<f32>,
+    position: Option<Vec2>,
+    size: Option<Vec2>,
 }
 
 impl<'a> Slider<'a> {
@@ -17,6 +20,8 @@ impl<'a> Slider<'a> {
             id,
             range,
             label: "",
+            position: None,
+            size: None,
         }
     }
 
@@ -25,6 +30,22 @@ impl<'a> Slider<'a> {
             id: self.id,
             range: self.range,
             label,
+            position: self.position,
+            size: self.size,
+        }
+    }
+
+    pub const fn size(self, size: Vec2) -> Self {
+        Self {
+            size: Some(size),
+            ..self
+        }
+    }
+
+    pub const fn position(self, pos: Vec2) -> Self {
+        Self {
+            position: Some(pos),
+            ..self
         }
     }
 
@@ -35,7 +56,11 @@ impl<'a> Slider<'a> {
             context.window.cursor.area.w - context.style.margin * 3. - context.window.cursor.ident,
             19.,
         );
-        let pos = context.window.cursor.fit(size, Layout::Vertical);
+
+        let pos = context
+            .window
+            .cursor
+            .fit(size, self.position.map_or(Layout::Vertical, Layout::Free));
 
         let editbox_width = 50.;
         let label_width = 100.;
