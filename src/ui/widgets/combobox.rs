@@ -8,6 +8,8 @@ pub struct ComboBox<'a, 'b, 'c> {
     label: &'a str,
     variants: &'b [&'c str],
     ratio: f32,
+    position: Option<Vec2>,
+    size: Option<Vec2>,
 }
 
 impl<'a, 'b, 'c> ComboBox<'a, 'b, 'c> {
@@ -17,6 +19,8 @@ impl<'a, 'b, 'c> ComboBox<'a, 'b, 'c> {
             label: "",
             variants,
             ratio: 0.5,
+            position: None,
+            size: None,
         }
     }
 
@@ -26,12 +30,29 @@ impl<'a, 'b, 'c> ComboBox<'a, 'b, 'c> {
             variants: self.variants,
             label,
             ratio: self.ratio,
+            position: self.position,
+            size: self.size,
         }
     }
 
     pub const fn ratio(self, ratio: f32) -> Self {
         Self { ratio, ..self }
     }
+
+    pub const fn size(self, size: Vec2) -> Self {
+        Self {
+            size: Some(size),
+            ..self
+        }
+    }
+
+    pub const fn position(self, pos: Vec2) -> Self {
+        Self {
+            position: Some(pos),
+            ..self
+        }
+    }
+
     pub fn ui(self, ui: &mut Ui, data: &mut usize) -> usize {
         let mut context = ui.get_active_window_context();
 
@@ -44,7 +65,10 @@ impl<'a, 'b, 'c> ComboBox<'a, 'b, 'c> {
 
         let combobox_area_w = size.x * self.ratio - 15.;
 
-        let pos = context.window.cursor.fit(size, Layout::Vertical);
+        let pos = context
+            .window
+            .cursor
+            .fit(size, self.position.map_or(Layout::Vertical, Layout::Free));
 
         let active_area_w = size.x * self.ratio;
 
