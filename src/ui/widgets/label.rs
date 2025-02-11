@@ -60,16 +60,13 @@ impl<'a> Label<'a> {
             .cursor
             .fit(size, self.position.map_or(Layout::Vertical, Layout::Free));
 
-        context.window.painter.draw_element_content(
+        context.window.painter.draw_element_label(
             &context.style.label_style,
             pos,
-            size,
-            &UiContent::Label(self.label),
+            &self.label,
             ElementState {
                 focused: context.focused,
-                hovered: false,
-                clicked: false,
-                selected: false,
+                ..Default::default()
             },
         );
     }
