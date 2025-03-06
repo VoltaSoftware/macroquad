@@ -4,10 +4,13 @@ use crate::{
     color::Color, file::load_file, get_context, get_quad_context, math::Rect,
     text::atlas::SpriteKey, Error,
 };
+use std::fs::File;
+use std::io::{BufWriter, Cursor};
 
 pub use crate::quad_gl::FilterMode;
 use crate::quad_gl::{DrawMode, Vertex};
 use glam::{vec2, Vec2};
+use png::{BitDepth, ColorType, Decoder, Encoder};
 use slotmap::{TextureIdSlotMap, TextureSlotId};
 use std::sync::Arc;
 
@@ -104,22 +107,19 @@ impl Image {
     /// ```
     /// # use macroquad::prelude::*;
     /// let icon = Image::from_file_with_format(
-    ///     include_bytes!("../examples/rust.png"),
-    ///     Some(ImageFormat::Png),
+    ///     include_bytes!("../examples/rust.png")
     ///     );
     /// ```
-    pub fn from_file_with_format(
-        bytes: &[u8],
-        format: Option<image::ImageFormat>,
-    ) -> Result<Image, Error> {
-        let img = if let Some(fmt) = format {
-            image::load_from_memory_with_format(bytes, fmt)?.to_rgba8()
-        } else {
-            image::load_from_memory(bytes)?.to_rgba8()
-        };
-        let width = img.width() as u16;
-        let height = img.height() as u16;
-        let bytes = img.into_raw();
+    pub fn from_file_with_format(bytes: &[u8]) -> Result<Image, Error> {
+        let decoder = Decoder::new(Cursor::new(bytes));
+        let mut reader = decoder.read_info()?;
+
+        let mut buf = vec![0; reader.output_buffer_size()];
+        let info = reader.next_frame(&mut buf)?;
+
+        let width = info.width as u16;
+        let height = info.height as u16;
+        let bytes = buf[..info.buffer_size()].to_vec();
 
         Ok(Image {
             width,
@@ -314,14 +314,17 @@ impl Image {
             }
         }
 
-        image::save_buffer(
-            path,
-            &bytes[..],
-            self.width as _,
-            self.height as _,
-            image::ColorType::Rgba8,
-        )
-        .unwrap();
+        let file = File::create(path).expect("Failed to create file");
+        let ref mut writer = BufWriter::new(file);
+
+        let mut encoder = Encoder::new(writer, self.width as _, self.height as _);
+        encoder.set_color(ColorType::Rgba);
+        encoder.set_depth(BitDepth::Eight);
+
+        let mut png_writer = encoder.write_header().expect("Failed to write PNG header");
+        png_writer
+            .write_image_data(&bytes[..])
+            .expect("Failed to write PNG data");
     }
 }
 
@@ -329,14 +332,14 @@ impl Image {
 pub async fn load_image(path: &str) -> Result<Image, Error> {
     let bytes = load_file(path).await?;
 
-    Image::from_file_with_format(&bytes, None)
+    Image::from_file_with_format(&bytes)
 }
 
 /// Loads a [Texture2D] from a file into GPU memory.
 pub async fn load_texture(path: &str) -> Result<Texture2D, Error> {
     let bytes = load_file(path).await?;
 
-    Ok(Texture2D::from_file_with_format(&bytes[..], None))
+    Ok(Texture2D::from_file_with_format(&bytes[..]))
 }
 
 #[derive(Debug, Clone)]
@@ -685,19 +688,18 @@ impl Texture2D {
     ///     );
     /// # }
     /// ```
-    pub fn from_file_with_format(bytes: &[u8], format: Option<image::ImageFormat>) -> Texture2D {
-        let img = if let Some(fmt) = format {
-            image::load_from_memory_with_format(bytes, fmt)
-                .unwrap_or_else(|e| panic!("{}", e))
-                .to_rgba8()
-        } else {
-            image::load_from_memory(bytes)
-                .unwrap_or_else(|e| panic!("{}", e))
-                .to_rgba8()
-        };
-        let width = img.width() as u16;
-        let height = img.height() as u16;
-        let bytes = img.into_raw();
+    pub fn from_file_with_format(bytes: &[u8]) -> Texture2D {
+        let decoder = Decoder::new(Cursor::new(bytes));
+        let mut reader = decoder.read_info().expect("Failed to read image info");
+
+        let mut buf = vec![0; reader.output_buffer_size()];
+        let info = reader
+            .next_frame(&mut buf)
+            .expect("Failed to read image frame");
+
+        let width = info.width as u16;
+        let height = info.height as u16;
+        let bytes = buf[..info.buffer_size()].to_vec();
 
         Self::from_rgba8(width, height, &bytes)
     }

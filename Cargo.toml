@@ -8,7 +8,7 @@ repository = "https://github.com/not-fl3/macroquad"
 description = """
 Simple and easy to use graphics library
 """
-readme="README.md"
+readme = "README.md"
 license = "MIT OR Apache-2.0"
 
 [features]
@@ -30,12 +30,12 @@ all-features = true
 miniquad = { git = "https://github.com/VoltaSoftware/miniquad", branch = "master", features = ["log-impl"] }
 quad-rand = "0.2.3"
 glam = { version = "0.27", features = ["scalar-math"] }
-image = { version = "0.24", default-features = false, features = ["png", "tga"] }
 macroquad_macro = { version = "0.1.8", path = "macroquad_macro" }
 fontdue = "0.9"
-backtrace = { version = "0.3.60", optional = true, default-features = false, features = [ "std", "libbacktrace" ] }
+backtrace = { version = "0.3.60", optional = true, default-features = false, features = ["std", "libbacktrace"] }
 log = { version = "0.4", optional = true }
 quad-snd = { version = "0.2", optional = true }
+png = { version = "0.17.16" }
 
 [dev-dependencies]
 macroquad-particles = { path = "./particles" }

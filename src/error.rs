@@ -6,7 +6,7 @@ pub enum Error {
         path: String,
     },
     ShaderError(miniquad::ShaderError),
-    ImageError(image::ImageError),
+    PngError(png::DecodingError),
     UnknownError(&'static str),
 }
 
@@ -22,9 +22,9 @@ impl From<miniquad::ShaderError> for Error {
     }
 }
 
-impl From<image::ImageError> for Error {
-    fn from(s: image::ImageError) -> Self {
-        Error::ImageError(s)
+impl From<png::DecodingError> for Error {
+    fn from(s: png::DecodingError) -> Self {
+        Error::PngError(s)
     }
 }
 
