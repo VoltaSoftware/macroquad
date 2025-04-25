@@ -90,10 +90,10 @@ impl<'a> InputText<'a> {
             label_size.y.max(19.),
         ));
 
-        let pos = context
-            .window
-            .cursor
-            .fit(size, self.pos.map_or(Layout::Vertical, Layout::Free));
+        let pos = self
+            .pos
+            .map(|pos| pos + context.window.cursor.fit(size, Layout::Vertical))
+            .unwrap_or_else(|| context.window.cursor.fit(size, Layout::Vertical));
 
         let editbox_area_w = if self.label.is_empty() {
             size.x

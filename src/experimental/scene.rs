@@ -285,46 +285,28 @@ impl Cell {
             capabilities: vec![],
             used,
             permanent: false,
-            ready: unsafe {
-                std::mem::transmute(&(Node::ready as fn(RefMut<T>)) as *const fn(RefMut<T>))
-            },
-            update: unsafe {
-                std::mem::transmute(&(Node::update as fn(RefMut<T>)) as *const fn(RefMut<T>))
-            },
-            fixed_update: unsafe {
-                std::mem::transmute(&(Node::fixed_update as fn(RefMut<T>)) as *const fn(RefMut<T>))
-            },
-            draw: unsafe {
-                std::mem::transmute(&(Node::draw as fn(RefMut<T>)) as *const fn(RefMut<T>))
-            },
-            virtual_drop: unsafe {
-                std::mem::transmute(&(virtual_drop::<T> as fn(*mut ())) as *const fn(*mut ()))
-            },
-            data_len: std::mem::size_of::<T>(),
+            ready: (&(Node::ready as fn(RefMut<T>)) as *const fn(RefMut<T>)).cast(),
+            update: (&(Node::update as fn(RefMut<T>)) as *const fn(RefMut<T>)).cast(),
+            fixed_update: (&(Node::fixed_update as fn(RefMut<T>)) as *const fn(RefMut<T>)).cast(),
+            draw: (&(Node::draw as fn(RefMut<T>)) as *const fn(RefMut<T>)).cast(),
+            virtual_drop: &(virtual_drop::<T> as fn(*mut ())) as *const fn(*mut ()),
+            data_len: size_of::<T>(),
             initialized: false,
         }
     }
 
     fn update<T: Node + 'static>(&mut self, data: T) {
-        assert!(std::mem::size_of::<T>() <= self.data_len);
+        assert!(size_of::<T>() <= self.data_len);
 
         let trait_obj = &data as &dyn NodeAny;
         let (_, vtable) = unsafe { std::mem::transmute::<_, (*mut (), *mut ())>(trait_obj) };
 
         self.vtable = vtable;
-        self.ready =
-            unsafe { std::mem::transmute(&(Node::ready as fn(RefMut<T>)) as *const fn(RefMut<T>)) };
-        self.update = unsafe {
-            std::mem::transmute(&(Node::update as fn(RefMut<T>)) as *const fn(RefMut<T>))
-        };
-        self.fixed_update = unsafe {
-            std::mem::transmute(&(Node::fixed_update as fn(RefMut<T>)) as *const fn(RefMut<T>))
-        };
-        self.draw =
-            unsafe { std::mem::transmute(&(Node::draw as fn(RefMut<T>)) as *const fn(RefMut<T>)) };
-        self.virtual_drop = unsafe {
-            std::mem::transmute(&(virtual_drop::<T> as fn(*mut ())) as *const fn(*mut ()))
-        };
+        self.ready = (&(Node::ready as fn(RefMut<T>)) as *const fn(RefMut<T>)).cast();
+        self.update = (&(Node::update as fn(RefMut<T>)) as *const fn(RefMut<T>)).cast();
+        self.fixed_update = (&(Node::fixed_update as fn(RefMut<T>)) as *const fn(RefMut<T>)).cast();
+        self.draw = (&(Node::draw as fn(RefMut<T>)) as *const fn(RefMut<T>)).cast();
+        self.virtual_drop = &(virtual_drop::<T> as fn(*mut ())) as *const fn(*mut ());
 
         unsafe {
             std::ptr::copy_nonoverlapping::<T>(&data as *const _ as *mut _, self.data as *mut _, 1);
@@ -426,10 +408,7 @@ impl Scene {
     }
 
     pub fn get<T>(&mut self, handle: Handle<T>) -> Option<RefMut<T>> {
-        if handle.id.is_none() {
-            return None;
-        }
-        let ref_mut_any = self.get_any(HandleUntyped(handle.id.unwrap()))?;
+        let ref_mut_any = self.get_any(HandleUntyped(handle.id?))?;
         Some(ref_mut_any.to_typed())
     }
 
@@ -446,7 +425,7 @@ impl Scene {
         if let Some(i) = self
             .free_nodes
             .iter()
-            .position(|free_node| free_node.data_len >= std::mem::size_of::<T>())
+            .position(|free_node| free_node.data_len >= size_of::<T>())
         {
             let mut free_node = self.free_nodes.remove(i);
 
@@ -459,7 +438,7 @@ impl Scene {
             let trait_obj = &data as &dyn NodeAny;
             let (_, vtable) = unsafe { std::mem::transmute::<_, (*mut (), *mut ())>(trait_obj) };
 
-            let ptr = self.arena.alloc(std::mem::size_of::<T>()) as *mut _ as *mut T;
+            let ptr = self.arena.alloc(size_of::<T>()) as *mut _ as *mut T;
             unsafe {
                 std::ptr::write(ptr, data);
             }
