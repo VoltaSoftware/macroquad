@@ -416,8 +416,12 @@ impl Context {
 
         telemetry::end_gpu_query();
 
-        // Clear input state
-        self.clear_input_state(false);
+        self.mouse_wheel = Vec2::new(0., 0.);
+        self.keys_pressed.clear();
+        self.keys_released.clear();
+        self.mouse_pressed.clear();
+        self.mouse_released.clear();
+        self.last_mouse_position = Some(crate::prelude::mouse_position_local());
 
         self.quit_requested = false;
 
@@ -435,23 +439,6 @@ impl Context {
         }
 
         self.dropped_files.clear();
-    }
-
-    fn clear_input_state(&mut self, focus_lost: bool) {
-        self.mouse_wheel = Vec2::new(0., 0.);
-        self.keys_pressed.clear();
-        self.keys_released.clear();
-        self.mouse_pressed.clear();
-        self.mouse_released.clear();
-        self.last_mouse_position = Some(crate::prelude::mouse_position_local());
-
-        // Full clear
-        if focus_lost {
-            self.keys_down.clear();
-            self.mouse_down.clear();
-            self.touches.clear();
-            self.input_events.clear(); // We need this?
-        }
     }
 
     pub(crate) fn pixel_perfect_projection_matrix(&self) -> glam::Mat4 {
@@ -693,12 +680,6 @@ impl EventHandler for Stage {
         if miniquad::window::blocking_event_loop() {
             //miniquad::window::schedule_update();
         }
-    }
-
-    fn window_focus_lost(&mut self) {
-        println!("Clearing input state");
-        let context = get_context();
-        context.clear_input_state(true);
     }
 
     fn update(&mut self) {
