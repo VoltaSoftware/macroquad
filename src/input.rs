@@ -87,6 +87,18 @@ pub fn simulate_mouse_with_touch(option: bool) {
     get_context().simulate_mouse_with_touch = option;
 }
 
+/// This is set to false by default, meaning mouse events will raise touch events in addition to raising mouse events.
+/// If set to false, mouse events won't affect touches.
+pub fn is_simulating_touch_with_mouse() -> bool {
+    get_context().simulate_touch_with_mouse
+}
+
+/// This is set to false by default, meaning mouse events will raise touch events in addition to raising mouse events.
+/// If set to false, mouse events won't affect touches.
+pub fn simulate_touch_with_mouse(option: bool) {
+    get_context().simulate_touch_with_mouse = option;
+}
+
 /// Return touches with positions in pixels.
 pub fn touches() -> Vec<Touch> {
     get_context().touches.values().cloned().collect()
@@ -198,8 +210,7 @@ pub fn is_mouse_button_released(btn: MouseButton) -> bool {
 
 /// Convert a position in pixels to a position in the range [-1; 1].
 fn convert_to_local(pixel_pos: Vec2) -> Vec2 {
-    Vec2::new(pixel_pos.x / screen_width(), pixel_pos.y / screen_height()) * 2.0
-        - Vec2::new(1.0, 1.0)
+    Vec2::new(pixel_pos.x / screen_width(), pixel_pos.y / screen_height()) * 2.0 - Vec2::new(1.0, 1.0)
 }
 
 /// Prevents quit
