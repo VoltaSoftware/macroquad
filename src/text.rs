@@ -330,9 +330,7 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) -
         total_width += char_data.advance * font_scale_x;
 
         crate::texture::draw_texture_ex(
-            &crate::texture::Texture2D {
-                texture: TextureHandle::Unmanaged(atlas.texture()),
-            },
+            &crate::texture::Texture2D::create_and_cache_size(TextureHandle::Unmanaged(atlas.texture())),
             dest.x,
             dest.y,
             params.color,
