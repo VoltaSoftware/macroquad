@@ -831,7 +831,7 @@ impl QuadGl {
         let pip = self
             .state
             .pipeline
-            .unwrap_or(self.pipelines.get(self.state.draw_mode, self.state.depth_test_enable));
+            .unwrap_or_else(|| self.pipelines.get(self.state.draw_mode, self.state.depth_test_enable));
 
         let previous_dc_ix = if self.draw_calls_count == 0 {
             None
@@ -885,12 +885,15 @@ impl QuadGl {
         };
         let dc = &mut self.draw_calls[self.draw_calls_count - 1];
 
+        let indices_len = indices.len();
+        let vertices_len = vertices.len();
+
         self.batch_vertex_buffer.extend(vertices);
         self.batch_index_buffer
-            .extend(indices.iter().map(|x| *x + dc.vertices_count as u16));
+            .extend(indices.into_iter().map(|x| *x + dc.vertices_count as u16));
 
-        dc.vertices_count += vertices.len();
-        dc.indices_count += indices.len();
+        dc.vertices_count += vertices_len;
+        dc.indices_count += indices_len;
 
         dc.texture = self.state.texture;
     }

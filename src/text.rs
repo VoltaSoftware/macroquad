@@ -8,7 +8,7 @@ use crate::{
     Error,
 };
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::color::WHITE;
@@ -301,16 +301,21 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) -
     let rot_cos = rot.cos();
     let rot_sin = rot.sin();
 
-    for character in text.chars() {
+    let unique_characters_from_text: HashSet<char> = text.chars().collect();
+    for character in unique_characters_from_text.into_iter() {
         if !font.contains(character, font_size) {
             font.cache_glyph(character, font_size);
         }
+    }
 
-        let char_data = &font.characters.borrow()[&(character, font_size)];
+    let font_characters = font.characters.borrow();
+    let mut atlas = font.atlas.borrow_mut();
+
+    for character in text.chars() {
+        let char_data = &font_characters[&(character, font_size)];
         let offset_x = char_data.offset_x as f32 * font_scale_x;
         let offset_y = char_data.offset_y as f32 * font_scale_y;
 
-        let mut atlas = font.atlas.borrow_mut();
         let glyph = atlas.get(char_data.sprite).as_ref().unwrap().rect;
         let glyph_scaled_h = glyph.h * font_scale_y;
 
