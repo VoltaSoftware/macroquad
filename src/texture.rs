@@ -1,9 +1,6 @@
 //! Loading and rendering textures. Also render textures, per-pixel image manipulations.
 
-use crate::{
-    color::Color, file::load_file, get_context, get_quad_context, math::Rect,
-    text::atlas::SpriteKey, Error,
-};
+use crate::{color::Color, file::load_file, get_context, get_quad_context, math::Rect, text::atlas::SpriteKey, Error};
 use std::fs::File;
 use std::io::{BufWriter, Cursor};
 
@@ -121,11 +118,7 @@ impl Image {
         let height = info.height as u16;
         let bytes = buf[..info.buffer_size()].to_vec();
 
-        Ok(Image {
-            width,
-            height,
-            bytes,
-        })
+        Ok(Image { width, height, bytes })
     }
 
     /// Creates an Image filled with the provided [Color].
@@ -137,11 +130,7 @@ impl Image {
             bytes[i * 4 + 2] = (color.b * 255.) as u8;
             bytes[i * 4 + 3] = (color.a * 255.) as u8;
         }
-        Image {
-            width,
-            height,
-            bytes,
-        }
+        Image { width, height, bytes }
     }
 
     /// Updates this image from a slice of [Color]s.
@@ -171,12 +160,7 @@ impl Image {
         use std::slice;
         assert!(self.width as usize * self.height as usize * 4 == self.bytes.len());
 
-        unsafe {
-            slice::from_raw_parts(
-                self.bytes.as_ptr() as *const [u8; 4],
-                self.width as usize * self.height as usize,
-            )
-        }
+        unsafe { slice::from_raw_parts(self.bytes.as_ptr() as *const [u8; 4], self.width as usize * self.height as usize) }
     }
 
     /// Returns this image's data as a mutable slice of 4-byte arrays.
@@ -184,12 +168,7 @@ impl Image {
         use std::slice;
         assert!(self.width as usize * self.height as usize * 4 == self.bytes.len());
 
-        unsafe {
-            slice::from_raw_parts_mut(
-                self.bytes.as_mut_ptr() as *mut [u8; 4],
-                self.width as usize * self.height as usize,
-            )
-        }
+        unsafe { slice::from_raw_parts_mut(self.bytes.as_mut_ptr() as *mut [u8; 4], self.width as usize * self.height as usize) }
     }
 
     /// Modifies a pixel [Color] in this image.
@@ -235,10 +214,7 @@ impl Image {
     /// Blends this image with another image (of identical dimensions)
     /// Inspired by  OpenCV saturated blending
     pub fn blend(&mut self, other: &Image) {
-        assert!(
-            self.width as usize * self.height as usize
-                == other.width as usize * other.height as usize
-        );
+        assert!(self.width as usize * self.height as usize == other.width as usize * other.height as usize);
 
         for i in 0..self.bytes.len() / 4 {
             let c1: Color = Color {
@@ -271,10 +247,7 @@ impl Image {
     /// overlaying a completely transparent image has no effect
     /// on the original image, though blending them would.
     pub fn overlay(&mut self, other: &Image) {
-        assert!(
-            self.width as usize * self.height as usize
-                == other.width as usize * other.height as usize
-        );
+        assert!(self.width as usize * self.height as usize == other.width as usize * other.height as usize);
 
         for i in 0..self.bytes.len() / 4 {
             let c1: Color = Color {
@@ -311,8 +284,7 @@ impl Image {
         // flip the image before saving
         for y in 0..self.height as usize {
             for x in 0..self.width as usize * 4 {
-                bytes[y * self.width as usize * 4 + x] =
-                    self.bytes[(self.height as usize - y - 1) * self.width as usize * 4 + x];
+                bytes[y * self.width as usize * 4 + x] = self.bytes[(self.height as usize - y - 1) * self.width as usize * 4 + x];
             }
         }
 
@@ -324,9 +296,7 @@ impl Image {
         encoder.set_depth(BitDepth::Eight);
 
         let mut png_writer = encoder.write_header().expect("Failed to write PNG header");
-        png_writer
-            .write_image_data(&bytes[..])
-            .expect("Failed to write PNG data");
+        png_writer.write_image_data(&bytes[..]).expect("Failed to write PNG data");
     }
 }
 
@@ -419,32 +389,25 @@ pub fn render_target_ex(width: u32, height: u32, params: RenderTargetParams) -> 
         ..Default::default()
     });
     let depth_texture = if params.depth {
-        Some(
-            get_quad_context().new_render_texture(miniquad::TextureParams {
-                width,
-                height,
-                format: miniquad::TextureFormat::Depth,
-                sample_count: params.sample_count,
-                ..Default::default()
-            }),
-        )
+        Some(get_quad_context().new_render_texture(miniquad::TextureParams {
+            width,
+            height,
+            format: miniquad::TextureFormat::Depth,
+            sample_count: params.sample_count,
+            ..Default::default()
+        }))
     } else {
         None
     };
     let render_pass;
     let texture;
     if params.sample_count != 0 {
-        let color_resolve_texture =
-            get_quad_context().new_render_texture(miniquad::TextureParams {
-                width,
-                height,
-                ..Default::default()
-            });
-        render_pass = get_quad_context().new_render_pass_mrt(
-            &[color_texture],
-            Some(&[color_resolve_texture]),
-            depth_texture,
-        );
+        let color_resolve_texture = get_quad_context().new_render_texture(miniquad::TextureParams {
+            width,
+            height,
+            ..Default::default()
+        });
+        render_pass = get_quad_context().new_render_pass_mrt(&[color_texture], Some(&[color_resolve_texture]), depth_texture);
         texture = color_resolve_texture;
     } else {
         render_pass = get_quad_context().new_render_pass_mrt(&[color_texture], None, depth_texture);
@@ -460,10 +423,7 @@ pub fn render_target_ex(width: u32, height: u32, params: RenderTargetParams) -> 
         depth_texture: None,
         render_pass: Arc::new(render_pass),
     };
-    RenderTarget {
-        texture,
-        render_pass,
-    }
+    RenderTarget { texture, render_pass }
 }
 
 #[derive(Debug, Clone)]
@@ -509,47 +469,42 @@ pub fn draw_texture(texture: &Texture2D, x: f32, y: f32, color: Color) {
     draw_texture_ex(texture, x, y, color, Default::default());
 }
 
-pub fn draw_texture_ex(
-    texture: &Texture2D,
-    x: f32,
-    y: f32,
-    color: Color,
-    params: DrawTextureParams,
-) {
+pub fn draw_texture_ex(texture: &Texture2D, x: f32, y: f32, color: Color, params: DrawTextureParams) {
     let context = get_context();
 
-    let [mut width, mut height] = texture.size().to_array();
+    let texture_size = texture.size();
+    let mut width = texture_size.x;
+    let mut height = texture_size.y;
 
     let Rect {
         x: mut sx,
         y: mut sy,
         w: mut sw,
         h: mut sh,
-    } = params.source.unwrap_or(Rect {
+    } = params.source.unwrap_or_else(|| Rect {
         x: 0.,
         y: 0.,
         w: width,
         h: height,
     });
 
-    let texture_opt = context
-        .texture_batcher
-        .get(texture)
-        .map(|(batched_texture, uv)| {
-            let [batched_width, batched_height] = batched_texture.size().to_array();
-            sx = ((sx / width) * uv.w + uv.x) * batched_width;
-            sy = ((sy / height) * uv.h + uv.y) * batched_height;
-            sw = (sw / width) * uv.w * batched_width;
-            sh = (sh / height) * uv.h * batched_height;
+    let texture_opt = context.texture_batcher.get(texture).map(|(batched_texture, uv)| {
+        let batched_texture_size = batched_texture.size();
+        let batched_width = batched_texture_size.x;
+        let batched_height = batched_texture_size.y;
+        sx = ((sx / width) * uv.w + uv.x) * batched_width;
+        sy = ((sy / height) * uv.h + uv.y) * batched_height;
+        sw = (sw / width) * uv.w * batched_width;
+        sh = (sh / height) * uv.h * batched_height;
 
-            width = batched_width;
-            height = batched_height;
+        width = batched_width;
+        height = batched_height;
 
-            batched_texture
-        });
+        batched_texture
+    });
     let texture = texture_opt.as_ref().unwrap_or(texture);
 
-    let (mut w, mut h) = match params.dest_size {
+    let (mut w, mut h) = match &params.dest_size {
         Some(dst) => (dst.x, dst.y),
         _ => (sw, sh),
     };
@@ -564,7 +519,7 @@ pub fn draw_texture_ex(
         h = -h;
     }
 
-    let pivot = params.pivot.unwrap_or(vec2(x + w / 2., y + h / 2.));
+    let pivot = params.pivot.unwrap_or_else(|| vec2(x + w / 2., y + h / 2.));
     let m = pivot;
     let p = [
         vec2(x, y) - pivot,
@@ -573,23 +528,13 @@ pub fn draw_texture_ex(
         vec2(x, y + h) - pivot,
     ];
     let r = params.rotation;
+    let r_cos = r.cos();
+    let r_sin = r.sin();
     let p = [
-        vec2(
-            p[0].x * r.cos() - p[0].y * r.sin(),
-            p[0].x * r.sin() + p[0].y * r.cos(),
-        ) + m,
-        vec2(
-            p[1].x * r.cos() - p[1].y * r.sin(),
-            p[1].x * r.sin() + p[1].y * r.cos(),
-        ) + m,
-        vec2(
-            p[2].x * r.cos() - p[2].y * r.sin(),
-            p[2].x * r.sin() + p[2].y * r.cos(),
-        ) + m,
-        vec2(
-            p[3].x * r.cos() - p[3].y * r.sin(),
-            p[3].x * r.sin() + p[3].y * r.cos(),
-        ) + m,
+        vec2(p[0].x * r_cos - p[0].y * r_sin, p[0].x * r_sin + p[0].y * r_cos) + m,
+        vec2(p[1].x * r_cos - p[1].y * r_sin, p[1].x * r_sin + p[1].y * r_cos) + m,
+        vec2(p[2].x * r_cos - p[2].y * r_sin, p[2].x * r_sin + p[2].y * r_cos) + m,
+        vec2(p[3].x * r_cos - p[3].y * r_sin, p[3].x * r_sin + p[3].y * r_cos) + m,
     ];
     #[rustfmt::skip]
     let vertices = [
@@ -695,9 +640,7 @@ impl Texture2D {
         let mut reader = decoder.read_info().expect("Failed to read image info");
 
         let mut buf = vec![0; reader.output_buffer_size()];
-        let info = reader
-            .next_frame(&mut buf)
-            .expect("Failed to read image frame");
+        let info = reader.next_frame(&mut buf).expect("Failed to read image frame");
 
         let width = info.width as u16;
         let height = info.height as u16;
@@ -768,24 +711,10 @@ impl Texture2D {
     }
 
     /// Uploads [Image] data to part of this texture.
-    pub fn update_part(
-        &self,
-        image: &Image,
-        x_offset: i32,
-        y_offset: i32,
-        width: i32,
-        height: i32,
-    ) {
+    pub fn update_part(&self, image: &Image, x_offset: i32, y_offset: i32, width: i32, height: i32) {
         let ctx = get_quad_context();
 
-        ctx.texture_update_part(
-            self.raw_miniquad_id(),
-            x_offset,
-            y_offset,
-            width,
-            height,
-            &image.bytes,
-        );
+        ctx.texture_update_part(self.raw_miniquad_id(), x_offset, y_offset, width, height, &image.bytes);
     }
 
     /// Returns the width of this texture.
@@ -827,11 +756,7 @@ impl Texture2D {
     pub fn set_filter(&self, filter_mode: FilterMode) {
         let ctx = get_quad_context();
 
-        ctx.texture_set_filter(
-            self.raw_miniquad_id(),
-            filter_mode,
-            miniquad::MipmapFilterMode::None,
-        );
+        ctx.texture_set_filter(self.raw_miniquad_id(), filter_mode, miniquad::MipmapFilterMode::None);
     }
 
     /// Returns the handle for this texture.

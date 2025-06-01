@@ -10,14 +10,16 @@ use crate::{
     Error,
 };
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
 };
 
 pub struct StyleBuilder {
-    atlas: Arc<Mutex<Atlas>>,
-    font: Arc<Mutex<Font>>,
+    atlas: Rc<RefCell<Atlas>>,
+    font: Rc<RefCell<Font>>,
     font_size: u16,
     text_color: Color,
     text_color_hovered: Color,
@@ -37,7 +39,7 @@ pub struct StyleBuilder {
 }
 
 impl StyleBuilder {
-    pub(crate) fn new(default_font: Arc<Mutex<Font>>, atlas: Arc<Mutex<Atlas>>) -> StyleBuilder {
+    pub(crate) fn new(default_font: Rc<RefCell<Font>>, atlas: Rc<RefCell<Atlas>>) -> StyleBuilder {
         StyleBuilder {
             atlas,
             font: default_font,
@@ -63,9 +65,9 @@ impl StyleBuilder {
     pub fn with_font(self, font: &Font) -> Result<StyleBuilder, Error> {
         let mut font = font.clone();
         font.set_atlas(self.atlas.clone());
-        font.set_characters(Arc::new(Mutex::new(HashMap::new())));
+        font.set_characters(Rc::new(RefCell::new(HashMap::new())));
         Ok(StyleBuilder {
-            font: Arc::new(Mutex::new(font)),
+            font: Rc::new(RefCell::new(font)),
             ..self
         })
     }
@@ -74,7 +76,7 @@ impl StyleBuilder {
         let font = Font::load_from_bytes(self.atlas.clone(), ttf_bytes)?;
 
         Ok(StyleBuilder {
-            font: Arc::new(Mutex::new(font)),
+            font: Rc::new(RefCell::new(font)),
             ..self
         })
     }
@@ -115,10 +117,7 @@ impl StyleBuilder {
     }
 
     pub fn text_color(self, color: Color) -> StyleBuilder {
-        StyleBuilder {
-            text_color: color,
-            ..self
-        }
+        StyleBuilder { text_color: color, ..self }
     }
 
     pub fn text_color_hovered(self, color_hovered: Color) -> StyleBuilder {
@@ -144,24 +143,15 @@ impl StyleBuilder {
     }
 
     pub fn color_hovered(self, color_hovered: Color) -> StyleBuilder {
-        StyleBuilder {
-            color_hovered,
-            ..self
-        }
+        StyleBuilder { color_hovered, ..self }
     }
 
     pub fn color_clicked(self, color_clicked: Color) -> StyleBuilder {
-        StyleBuilder {
-            color_clicked,
-            ..self
-        }
+        StyleBuilder { color_clicked, ..self }
     }
 
     pub fn color_selected(self, color_selected: Color) -> StyleBuilder {
-        StyleBuilder {
-            color_selected,
-            ..self
-        }
+        StyleBuilder { color_selected, ..self }
     }
 
     pub fn color_selected_hovered(self, color_selected_hovered: Color) -> StyleBuilder {
@@ -186,7 +176,7 @@ impl StyleBuilder {
     }
 
     pub fn build(self) -> Style {
-        let mut atlas = self.atlas.lock().unwrap();
+        let mut atlas = self.atlas.borrow_mut();
 
         let background = self.background.map(|image| {
             let id = atlas.new_unique_id();
@@ -249,7 +239,7 @@ pub struct Style {
     /// Maybe be negative to compensate background_margin when content should overlap the
     /// borders
     pub(crate) margin: Option<RectOffset>,
-    pub(crate) font: Arc<Mutex<Font>>,
+    pub(crate) font: Rc<RefCell<Font>>,
     pub(crate) text_color: Color,
     pub(crate) text_color_hovered: Color,
     pub(crate) text_color_clicked: Color,
@@ -258,7 +248,7 @@ pub struct Style {
 }
 
 impl Style {
-    fn default(font: Arc<Mutex<Font>>) -> Style {
+    fn default(font: Rc<RefCell<Font>>) -> Style {
         Style {
             background: None,
             background_margin: None,
@@ -294,10 +284,7 @@ impl Style {
 
     pub(crate) fn text_color(&self, element_state: ElementState) -> Color {
         let ElementState {
-            focused,
-            hovered,
-            clicked,
-            ..
+            focused, hovered, clicked, ..
         } = element_state;
 
         if clicked {
@@ -350,9 +337,7 @@ impl Style {
     }
 
     pub(crate) const fn background_sprite(&self, element_state: ElementState) -> Option<SpriteKey> {
-        let ElementState {
-            clicked, hovered, ..
-        } = element_state;
+        let ElementState { clicked, hovered, .. } = element_state;
 
         if clicked && self.background_clicked.is_some() {
             return self.background_clicked;
@@ -389,7 +374,7 @@ pub struct Skin {
 }
 
 impl Skin {
-    pub(crate) fn new(atlas: Arc<Mutex<Atlas>>, default_font: Arc<Mutex<Font>>) -> Self {
+    pub(crate) fn new(atlas: Rc<RefCell<Atlas>>, default_font: Rc<RefCell<Font>>) -> Self {
         Skin {
             label_style: Style {
                 margin: Some(RectOffset::new(2., 2., 2., 2.)),
@@ -434,9 +419,8 @@ impl Skin {
                     width: 3,
                     height: 3,
                     bytes: vec![
-                        68, 68, 68, 255, 68, 68, 68, 255, 68, 68, 68, 255, 68, 68, 68, 255, 238,
-                        238, 238, 255, 68, 68, 68, 255, 68, 68, 68, 255, 68, 68, 68, 255, 68, 68,
-                        68, 255,
+                        68, 68, 68, 255, 68, 68, 68, 255, 68, 68, 68, 255, 68, 68, 68, 255, 238, 238, 238, 255, 68, 68, 68, 255, 68, 68,
+                        68, 255, 68, 68, 68, 255, 68, 68, 68, 255,
                     ],
                 })
                 .build(),

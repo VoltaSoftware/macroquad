@@ -41,17 +41,11 @@ impl<'a> Editbox<'a> {
     }
 
     pub const fn select_all(self) -> Self {
-        Editbox {
-            select_all: true,
-            ..self
-        }
+        Editbox { select_all: true, ..self }
     }
 
     pub const fn position(self, pos: Vec2) -> Self {
-        Editbox {
-            pos: Some(pos),
-            ..self
-        }
+        Editbox { pos: Some(pos), ..self }
     }
 
     pub const fn password(self, password: bool) -> Self {
@@ -100,10 +94,7 @@ impl<'a> Editbox<'a> {
                     ..
                 } => {
                     // Don't insert spaces for control characters
-                    if character.is_ascii()
-                        && !character.is_ascii_control()
-                        && self.filter.as_ref().map_or(true, |f| f(character))
-                    {
+                    if character.is_ascii() && !character.is_ascii_control() && self.filter.as_ref().map_or(true, |f| f(character)) {
                         if state.selection.is_some() {
                             state.delete_selected(text);
                         }
@@ -162,8 +153,7 @@ impl<'a> Editbox<'a> {
                     state.select_all(text);
                 }
                 InputCharacter {
-                    key: Key::KeyCode(Enter),
-                    ..
+                    key: Key::KeyCode(Enter), ..
                 } => {
                     if self.multiline {
                         state.insert_character(text, '\n');
@@ -180,8 +170,7 @@ impl<'a> Editbox<'a> {
                     }
                 }
                 InputCharacter {
-                    key: Key::KeyCode(Delete),
-                    ..
+                    key: Key::KeyCode(Delete), ..
                 } => {
                     if state.selection.is_none() {
                         state.delete_next_character(text);
@@ -286,9 +275,7 @@ impl<'a> Editbox<'a> {
 
         let context = ui.get_active_window_context();
 
-        let pos = self
-            .pos
-            .unwrap_or_else(|| context.window.cursor.fit(self.size, Layout::Vertical));
+        let pos = self.pos.unwrap_or_else(|| context.window.cursor.fit(self.size, Layout::Vertical));
 
         let rect = Rect::new(pos.x, pos.y, self.size.x, self.size.y);
 
@@ -305,9 +292,7 @@ impl<'a> Editbox<'a> {
             *context.input_focus = None;
         }
 
-        let state = context
-            .storage_any
-            .get_or_default::<EditboxState>(hash!(self.id, "cursor"));
+        let state = context.storage_any.get_or_default::<EditboxState>(hash!(self.id, "cursor"));
 
         // if text changed outside, than the selection range should be clamped
         state.clamp_selection(&text_vec);
@@ -324,12 +309,9 @@ impl<'a> Editbox<'a> {
             state.cursor = text_vec.len() as u32;
         }
 
-        let input_focused =
-            context.input_focus.map_or(false, |id| id == self.id) && context.focused;
+        let input_focused = context.input_focus.map_or(false, |id| id == self.id) && context.focused;
 
-        let is_tab_selected = context
-            .tab_selector
-            .register_selectable_widget(input_focused, context.input);
+        let is_tab_selected = context.tab_selector.register_selectable_widget(input_focused, context.input);
         if is_tab_selected {
             *context.input_focus = Some(self.id);
         }
@@ -346,12 +328,7 @@ impl<'a> Editbox<'a> {
         let mut edited = false;
         if context.focused && input_focused {
             edited = context.input.input_buffer.len() != 0;
-            self.apply_keyboard_input(
-                &mut context.input.input_buffer,
-                &mut *context.clipboard,
-                &mut text_vec,
-                state,
-            );
+            self.apply_keyboard_input(&mut context.input.input_buffer, &mut *context.clipboard, &mut text_vec, state);
         }
         // draw rect in parent window
 
@@ -377,21 +354,11 @@ impl<'a> Editbox<'a> {
         parent.window.childs.push(self.id);
         let parent_id = Some(parent.window.id);
 
-        let mut context = ui.begin_window(
-            self.id,
-            parent_id,
-            pos,
-            self.size + vec2(2., 2.),
-            false,
-            false,
-        );
+        let mut context = ui.begin_window(self.id, parent_id, pos, self.size + vec2(2., 2.), false, false);
 
         let line_height = context.style.editbox_style.font_size as f32;
 
-        let size = vec2(
-            150.,
-            line_height * text_vec.iter().filter(|c| **c == '\n').count() as f32,
-        );
+        let size = vec2(150., line_height * text_vec.iter().filter(|c| **c == '\n').count() as f32);
 
         let margin = self.margin.unwrap_or(vec2(2., 2.));
         let pos = context.window.cursor.fit(size, Layout::Free(margin));
@@ -402,37 +369,25 @@ impl<'a> Editbox<'a> {
 
         context.window.painter.clip(context.window.content_rect());
 
-        let state = context
-            .storage_any
-            .get_or_default::<EditboxState>(hash!(self.id, "cursor"));
+        let state = context.storage_any.get_or_default::<EditboxState>(hash!(self.id, "cursor"));
 
         let mut x = LEFT_MARGIN;
         let mut y = 0.;
         let mut clicked = false;
 
-        for (n, character) in text_vec
-            .iter()
-            .copied()
-            .chain(std::iter::once(' '))
-            .enumerate()
-        {
-            let character = if character != '\n' && self.password {
-                '*'
-            } else {
-                character
-            };
+        for (n, character) in text_vec.iter().copied().chain(std::iter::once(' ')).enumerate() {
+            let character = if character != '\n' && self.password { '*' } else { character };
 
             let font_size = context.style.editbox_style.font_size;
             if n == state.cursor as usize && input_focused {
                 // caret
-                context.window.painter.draw_rect(
-                    Rect::new(pos.x + x, pos.y + y + 2., 2., font_size as f32 - 5.),
-                    text_color,
-                    None,
-                );
+                context
+                    .window
+                    .painter
+                    .draw_rect(Rect::new(pos.x + x, pos.y + y + 2., 2., font_size as f32 - 5.), text_color, None);
             }
 
-            let mut font = context.style.editbox_style.font.lock().unwrap();
+            let mut font = context.style.editbox_style.font.borrow_mut();
             let font_size = context.style.editbox_style.font_size;
 
             let mut advance = 1.5; // 1.5 - hack to make cursor on newlines visible
@@ -444,11 +399,7 @@ impl<'a> Editbox<'a> {
                     Rect::new(
                         pos.x,
                         pos.y,
-                        context
-                            .window
-                            .painter
-                            .character_advance(character, &font, font_size)
-                            + 1.0,
+                        context.window.painter.character_advance(character, &font, font_size) + 1.0,
                         font_size as f32 - 1.,
                     ),
                     None,
@@ -476,16 +427,13 @@ impl<'a> Editbox<'a> {
 
             if clicked == false && hovered && context.input.is_mouse_down() && input_focused {
                 let cursor_on_current_line =
-                    (context.input.mouse_position.y - (pos.y + y + line_height / 2.)).abs()
-                        < line_height / 2. + 0.1;
+                    (context.input.mouse_position.y - (pos.y + y + line_height / 2.)).abs() < line_height / 2. + 0.1;
                 let line_end = character == '\n' || n == text_vec.len();
                 let cursor_after_line_end = context.input.mouse_position.x > (pos.x + x);
                 let clickable_character = character != '\n';
-                let cursor_on_character =
-                    (context.input.mouse_position.x - (pos.x + x)).abs() < advance / 2.;
+                let cursor_on_character = (context.input.mouse_position.x - (pos.x + x)).abs() < advance / 2.;
                 let last_character = n == text_vec.len();
-                let cursor_below_line =
-                    (context.input.mouse_position.y - (pos.y + y + line_height)) > 0.;
+                let cursor_below_line = (context.input.mouse_position.y - (pos.y + y + line_height)) > 0.;
 
                 if (cursor_on_current_line && line_end && cursor_after_line_end)
                     || (cursor_on_current_line && clickable_character && cursor_on_character)

@@ -31,6 +31,7 @@ pub use crate::hash;
 
 pub(crate) use render::ElementState;
 
+use std::cell::{Ref, RefCell};
 use std::{
     borrow::Cow,
     ops::DerefMut,
@@ -74,6 +75,8 @@ use crate::{
 };
 
 use std::collections::HashMap;
+use std::rc::Rc;
+
 mod cursor;
 mod input;
 mod key_repeat;
@@ -146,7 +149,7 @@ impl Window {
         margin: f32,
         movable: bool,
         force_focus: bool,
-        atlas: Arc<Mutex<Atlas>>,
+        atlas: Rc<RefCell<Atlas>>,
     ) -> Window {
         Window {
             id,
@@ -183,10 +186,7 @@ impl Window {
                 self.position.x + self.window_margin.left,
                 self.position.y + self.title_height + self.window_margin.top,
                 self.size.x - self.window_margin.left - self.window_margin.right,
-                self.size.y
-                    - self.title_height
-                    - self.window_margin.top
-                    - self.window_margin.bottom,
+                self.size.y - self.title_height - self.window_margin.top - self.window_margin.bottom,
             ),
             self.margin,
         );
@@ -216,12 +216,7 @@ impl Window {
     }
 
     pub const fn title_rect(&self) -> Rect {
-        Rect::new(
-            self.position.x,
-            self.position.y,
-            self.size.x,
-            self.title_height,
-        )
+        Rect::new(self.position.x, self.position.y, self.size.x, self.title_height)
     }
 
     pub fn same_line(&mut self, x: f32) {
@@ -248,7 +243,7 @@ struct StyleStack {
 }
 
 impl StyleStack {
-    fn new(atlas: Arc<Mutex<Atlas>>, default_font: Arc<Mutex<Font>>) -> StyleStack {
+    fn new(atlas: Rc<RefCell<Atlas>>, default_font: Rc<RefCell<Font>>) -> StyleStack {
         StyleStack {
             default_skin: Skin::new(atlas, default_font),
             custom_skin_stack: vec![],
@@ -302,11 +297,7 @@ impl TabSelector {
                 .any(|inp| inp.key == Key::KeyCode(KeyCode::Tab) && inp.modifier_shift)
             {
                 PressedTabKey::ShiftTab
-            } else if input
-                .input_buffer
-                .iter()
-                .any(|inp| inp.key == Key::KeyCode(KeyCode::Tab))
-            {
+            } else if input.input_buffer.iter().any(|inp| inp.key == Key::KeyCode(KeyCode::Tab)) {
                 PressedTabKey::Tab
             } else {
                 PressedTabKey::Other
@@ -364,8 +355,8 @@ pub struct Ui {
     last_item_clicked: bool,
     last_item_hovered: bool,
 
-    pub(crate) atlas: Arc<Mutex<Atlas>>,
-    pub(crate) default_font: Arc<Mutex<Font>>,
+    pub(crate) atlas: Rc<RefCell<Atlas>>,
+    pub(crate) default_font: Rc<RefCell<Font>>,
 
     clipboard_selection: String,
     clipboard: Box<dyn crate::ui::ClipboardObject>,
@@ -382,16 +373,8 @@ pub(crate) struct AnyStorage {
 }
 
 impl AnyStorage {
-    pub(crate) fn get_or_insert_with<T: Default + 'static, F: Fn() -> T>(
-        &mut self,
-        id: Id,
-        f: F,
-    ) -> &mut T {
-        self.storage
-            .entry(id)
-            .or_insert_with(|| Box::new(f()))
-            .downcast_mut::<T>()
-            .unwrap()
+    pub(crate) fn get_or_insert_with<T: Default + 'static, F: Fn() -> T>(&mut self, id: Id, f: F) -> &mut T {
+        self.storage.entry(id).or_insert_with(|| Box::new(f())).downcast_mut::<T>().unwrap()
     }
 
     pub(crate) fn get_or_default<T: Default + 'static>(&mut self, id: Id) -> &mut T {
@@ -430,21 +413,13 @@ impl<'a> WindowContext<'a> {
             ..rect
         };
 
-        self.window.cursor.scroll.scroll = Vec2::new(
-            -self.window.cursor.scroll.rect.x,
-            -self.window.cursor.scroll.rect.y,
-        );
+        self.window.cursor.scroll.scroll = Vec2::new(-self.window.cursor.scroll.rect.x, -self.window.cursor.scroll.rect.y);
 
         if inner_rect.h > rect.h {
             self.window.vertical_scroll_bar_width = self.style.scroll_width;
             self.draw_vertical_scroll_bar(
                 rect,
-                Rect::new(
-                    rect.x + rect.w - self.style.scroll_width,
-                    rect.y,
-                    self.style.scroll_width,
-                    rect.h,
-                ),
+                Rect::new(rect.x + rect.w - self.style.scroll_width, rect.y, self.style.scroll_width, rect.h),
             );
         } else {
             self.window.vertical_scroll_bar_width = 0.;
@@ -493,13 +468,8 @@ impl<'a> WindowContext<'a> {
             scroll.scroll_to(self.input.mouse_position.y * k + scroll.initial_scroll.y);
         }
 
-        if self.focused
-            && area.contains(self.input.mouse_position)
-            && self.input.mouse_wheel.y != 0.
-        {
-            scroll.scroll_to(
-                scroll.rect.y + self.input.mouse_wheel.y * k * self.style.scroll_multiplier,
-            );
+        if self.focused && area.contains(self.input.mouse_position) && self.input.mouse_wheel.y != 0. {
+            scroll.scroll_to(scroll.rect.y + self.input.mouse_wheel.y * k * self.style.scroll_multiplier);
         }
 
         self.window.painter.draw_rect(
@@ -515,16 +485,14 @@ impl<'a> WindowContext<'a> {
     }
 
     pub fn register_click_intention(&mut self, rect: Rect) -> (bool, bool) {
-        *self.last_item_hovered =
-            self.input.window_active && rect.contains(self.input.mouse_position);
+        *self.last_item_hovered = self.input.window_active && rect.contains(self.input.mouse_position);
         *self.last_item_clicked = *self.last_item_hovered && self.input.click_down();
 
         (*self.last_item_hovered, *self.last_item_clicked)
     }
 
     pub fn input_focused(&self, id: Id) -> bool {
-        self.input_focus
-            .map_or(false, |input_focus| input_focus == id)
+        self.input_focus.map_or(false, |input_focus| input_focus == id)
     }
 }
 
@@ -537,12 +505,7 @@ impl InputHandler for Ui {
         self.input.mouse_position = position;
 
         if let Some(ref window) = self.modal {
-            let rect = Rect::new(
-                window.position.x,
-                window.position.y,
-                window.size.x,
-                window.size.y,
-            );
+            let rect = Rect::new(window.position.x, window.position.y, window.size.x, window.size.y);
             if window.was_active && rect.contains(position) {
                 return;
             }
@@ -556,10 +519,7 @@ impl InputHandler for Ui {
             }
 
             if window.top_level() && window.title_rect().contains(position) && window.movable {
-                self.moving = Some((
-                    window.id,
-                    position - Vec2::new(window.position.x, window.position.y),
-                ));
+                self.moving = Some((window.id, position - Vec2::new(window.position.x, window.position.y)));
             }
 
             if window.top_level() && window.full_rect().contains(position) {
@@ -647,26 +607,19 @@ impl InputHandler for Ui {
 }
 
 impl Ui {
-    pub fn new(
-        ctx: &mut dyn miniquad::RenderingBackend,
-        screen_width: f32,
-        screen_height: f32,
-    ) -> Ui {
-        let atlas = Arc::new(Mutex::new(Atlas::new(ctx, miniquad::FilterMode::Nearest)));
-        let font =
-            crate::text::Font::load_from_bytes(atlas.clone(), include_bytes!("ProggyClean.ttf"))
-                .unwrap();
+    pub fn new(ctx: &mut dyn miniquad::RenderingBackend, screen_width: f32, screen_height: f32) -> Ui {
+        let atlas = Rc::new(RefCell::new(Atlas::new(ctx, miniquad::FilterMode::Nearest)));
+        let font = crate::text::Font::load_from_bytes(atlas.clone(), include_bytes!("ProggyClean.ttf")).unwrap();
 
         for character in crate::text::Font::ascii_character_list() {
             font.cache_glyph(character, 13);
         }
 
         atlas
-            .lock()
-            .unwrap()
+            .borrow_mut()
             .cache_sprite(SpriteKey::Id(0), Image::gen_image_color(1, 1, crate::WHITE));
 
-        let font = Arc::new(Mutex::new(font));
+        let font = Rc::new(RefCell::new(font));
         Ui {
             input: Input::default(),
             default_font: font.clone(),
@@ -736,8 +689,7 @@ impl Ui {
         movable: bool,
     ) -> WindowContext {
         if parent.is_some() {
-            self.child_window_stack
-                .push(self.active_window.unwrap_or(0));
+            self.child_window_stack.push(self.active_window.unwrap_or(0));
         }
         self.input.window_active = self.is_input_hovered(id);
 
@@ -747,11 +699,7 @@ impl Ui {
         let margin = self.skin_stack.top().margin;
         let margin_window = self.skin_stack.top().window_style.border_margin();
 
-        let title_height = if titlebar {
-            self.skin_stack.top().title_height
-        } else {
-            0.
-        };
+        let title_height = if titlebar { self.skin_stack.top().title_height } else { 0. };
         let atlas = self.atlas.clone();
         let windows_focus_order = &mut self.windows_focus_order;
 
@@ -759,16 +707,11 @@ impl Ui {
             // childs of root window are always force_focused
             Some(0) => true,
             // childs of force_focused windows are always force_focused as well
-            Some(parent) => self
-                .windows
-                .get(&parent)
-                .map_or(false, |window| window.force_focus),
+            Some(parent) => self.windows.get(&parent).map_or(false, |window| window.force_focus),
             _ => false,
         };
         let parent_clip_rect = if let Some(parent) = parent {
-            self.windows
-                .get(&parent)
-                .and_then(|window| window.painter.clipping_zone)
+            self.windows.get(&parent).and_then(|window| window.painter.clipping_zone)
         } else {
             None
         };
@@ -1020,18 +963,12 @@ impl Ui {
         if self.in_modal {
             true
         } else {
-            self.child_window_stack
-                .get(0)
-                .map_or(false, |root| *root == self.hovered_window)
+            self.child_window_stack.get(0).map_or(false, |root| *root == self.hovered_window)
         }
     }
 
     fn is_focused(&self, id: Id) -> bool {
-        if self
-            .windows
-            .get(&id)
-            .map_or(false, |window| window.force_focus)
-        {
+        if self.windows.get(&id).map_or(false, |window| window.force_focus) {
             return true;
         }
 
@@ -1052,10 +989,8 @@ impl Ui {
     }
 
     pub fn new_frame(&mut self, delta: f32) {
-        self.root_window.resize(crate::math::vec2(
-            crate::window::screen_width(),
-            crate::window::screen_height(),
-        ));
+        self.root_window
+            .resize(crate::math::vec2(crate::window::screen_width(), crate::window::screen_height()));
 
         self.frame += 1;
         self.time += delta;
@@ -1205,11 +1140,7 @@ pub(crate) mod ui_context {
     }
 
     impl UiContext {
-        pub(crate) fn new(
-            ctx: &mut dyn miniquad::RenderingBackend,
-            screen_width: f32,
-            screen_height: f32,
-        ) -> UiContext {
+        pub(crate) fn new(ctx: &mut dyn miniquad::RenderingBackend, screen_width: f32, screen_height: f32) -> UiContext {
             let ui = megaui::Ui::new(ctx, screen_width, screen_height);
 
             UiContext {
@@ -1280,11 +1211,7 @@ pub(crate) mod ui_context {
             ui.mouse_wheel(wheel_x, -wheel_y);
         }
 
-        pub(crate) fn draw(
-            &mut self,
-            ctx: &mut dyn miniquad::RenderingBackend,
-            quad_gl: &mut QuadGl,
-        ) {
+        pub(crate) fn draw(&mut self, ctx: &mut dyn miniquad::RenderingBackend, quad_gl: &mut QuadGl) {
             // TODO: this belongs to new and waits for cleaning up context initialization mess
             let material = self.material.get_or_insert_with(|| {
                 load_material(
@@ -1293,9 +1220,7 @@ pub(crate) mod ui_context {
                             vertex: VERTEX_SHADER,
                             fragment: FRAGMENT_SHADER,
                         },
-                        Backend::Metal => ShaderSource::Msl {
-                            program: METAL_SHADER,
-                        },
+                        Backend::Metal => ShaderSource::Msl { program: METAL_SHADER },
                     },
                     MaterialParams {
                         pipeline_params: PipelineParams {
@@ -1319,7 +1244,7 @@ pub(crate) mod ui_context {
 
             std::mem::swap(&mut ui_draw_list, &mut self.ui_draw_list);
 
-            let mut atlas = ui.atlas.lock().unwrap();
+            let mut atlas = ui.atlas.borrow_mut();
             let font_texture = atlas.texture();
             quad_gl.texture(Some(&Texture2D::unmanaged(font_texture)));
 

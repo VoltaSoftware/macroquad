@@ -11,6 +11,8 @@ use crate::{
     texture::Texture2D,
     ui::{style::Style, UiContent},
 };
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use std::sync::{Arc, Mutex};
 
@@ -68,11 +70,7 @@ pub(crate) enum DrawCommand {
 impl DrawCommand {
     pub fn offset(&self, offset: Vec2) -> DrawCommand {
         match self.clone() {
-            DrawCommand::DrawCharacter {
-                dest,
-                source,
-                color,
-            } => DrawCommand::DrawCharacter {
+            DrawCommand::DrawCharacter { dest, source, color } => DrawCommand::DrawCharacter {
                 dest: dest.offset(offset),
                 source,
                 color,
@@ -105,24 +103,13 @@ impl DrawCommand {
                 offsets,
                 offsets_uv,
             },
-            DrawCommand::DrawLine {
-                start,
-                end,
-                source,
-                color,
-            } => DrawCommand::DrawLine {
+            DrawCommand::DrawLine { start, end, source, color } => DrawCommand::DrawLine {
                 start: start + offset,
                 end: end + offset,
                 source,
                 color,
             },
-            DrawCommand::DrawTriangle {
-                p0,
-                p1,
-                p2,
-                source,
-                color,
-            } => DrawCommand::DrawTriangle {
+            DrawCommand::DrawTriangle { p0, p1, p2, source, color } => DrawCommand::DrawTriangle {
                 p0: p0 + offset,
                 p1: p1 + offset,
                 p2: p2 + offset,
@@ -150,11 +137,11 @@ impl DrawCommand {
 pub(crate) struct Painter {
     pub commands: Vec<DrawCommand>,
     pub clipping_zone: Option<Rect>,
-    font_atlas: Arc<Mutex<Atlas>>,
+    font_atlas: Rc<RefCell<Atlas>>,
 }
 
 impl Painter {
-    pub const fn new(font_atlas: Arc<Mutex<Atlas>>) -> Painter {
+    pub const fn new(font_atlas: Rc<RefCell<Atlas>>) -> Painter {
         Painter {
             commands: vec![],
             clipping_zone: None,
@@ -183,7 +170,7 @@ impl Painter {
     }
 
     pub fn content_with_margins_size(&self, style: &Style, content: &UiContent) -> Vec2 {
-        let font = &mut *style.font.lock().unwrap();
+        let font = &mut *style.font.borrow_mut();
         let font_size = style.font_size;
 
         let background_margin = style.background_margin.unwrap_or_default();
@@ -204,23 +191,12 @@ impl Painter {
             )
     }
 
-    pub fn draw_element_background(
-        &mut self,
-        style: &Style,
-        pos: Vec2,
-        size: Vec2,
-        element_state: ElementState,
-    ) {
+    pub fn draw_element_background(&mut self, style: &Style, pos: Vec2, size: Vec2, element_state: ElementState) {
         let color = style.color(element_state);
 
         let background_margin = style.background_margin.unwrap_or_default();
         if let Some(background) = style.background_sprite(element_state) {
-            self.draw_sprite(
-                Rect::new(pos.x, pos.y, size.x, size.y),
-                background,
-                color,
-                Some(background_margin),
-            );
+            self.draw_sprite(Rect::new(pos.x, pos.y, size.x, size.y), background, color, Some(background_margin));
         } else {
             self.draw_rect(Rect::new(pos.x, pos.y, size.x, size.y), None, color);
         }
@@ -228,30 +204,19 @@ impl Painter {
 
     // mostly legacy, technically everything should use `draw_element_content`
     // but draw_element_label had a slightly different margins resolver, so..
-    pub fn draw_element_label(
-        &mut self,
-        style: &Style,
-        pos: Vec2,
-        label: &str,
-        element_state: ElementState,
-    ) {
-        let font = &mut *style.font.lock().unwrap();
+    pub fn draw_element_label(&mut self, style: &Style, pos: Vec2, label: &str, element_state: ElementState) {
+        let font = &mut *style.font.borrow_mut();
         let font_size = style.font_size;
 
         let text_measures = self.label_size(label, None, font, font_size);
         let background_margin = style.background_margin.unwrap_or_default();
         let margin = style.margin.unwrap_or_default();
 
-        let top_coord = (font_size as f32) / 2. - (text_measures.height / 2.).trunc()
-            + margin.top
-            + background_margin.top;
+        let top_coord = (font_size as f32) / 2. - (text_measures.height / 2.).trunc() + margin.top + background_margin.top;
 
         self.draw_label(
             label,
-            pos + Vec2::new(
-                margin.left + background_margin.left,
-                top_coord + text_measures.offset_y,
-            ),
+            pos + Vec2::new(margin.left + background_margin.left, top_coord + text_measures.offset_y),
             Some(style.text_color(element_state)),
             font,
             font_size,
@@ -268,14 +233,13 @@ impl Painter {
     ) {
         match content {
             UiContent::Label(data) => {
-                let font = &mut *style.font.lock().unwrap();
+                let font = &mut *style.font.borrow_mut();
                 let font_size = style.font_size;
                 let text_color = style.text_color(element_state);
                 let text_measures = self.label_size(data, None, font, font_size);
 
                 let left_coord = (element_size.x - text_measures.width) / 2.;
-                let top_coord =
-                    element_size.y / 2. - text_measures.height / 2. + text_measures.offset_y;
+                let top_coord = element_size.y / 2. - text_measures.height / 2. + text_measures.offset_y;
 
                 self.draw_label(
                     data,
@@ -304,64 +268,30 @@ impl Painter {
         }
     }
 
-    pub fn label_size(
-        &self,
-        label: &str,
-        _multiline: Option<f32>,
-        font: &mut Font,
-        font_size: u16,
-    ) -> TextDimensions {
+    pub fn label_size(&self, label: &str, _multiline: Option<f32>, font: &Font, font_size: u16) -> TextDimensions {
         font.measure_text(label, font_size, 1.0, 1.0)
     }
 
     /// If character is in font atlas - will return x advance from position to potential next character position
-    pub fn draw_character(
-        &mut self,
-        character: char,
-        position: Vec2,
-        color: Color,
-        font: &mut Font,
-        font_size: u16,
-    ) -> Option<f32> {
+    pub fn draw_character(&mut self, character: char, position: Vec2, color: Color, font: &mut Font, font_size: u16) -> Option<f32> {
         if font.get(character, font_size).is_none() {
             font.cache_glyph(character, font_size);
         }
 
         if let Some(font_data) = font.get(character, font_size) {
-            let glyph = self
-                .font_atlas
-                .lock()
-                .unwrap()
-                .get(font_data.sprite)
-                .unwrap();
+            let glyph = self.font_atlas.borrow().get(font_data.sprite).unwrap();
             let left_coord = font_data.offset_x as f32;
             let top_coord = -glyph.rect.h - font_data.offset_y as f32;
-            let dest = Rect::new(
-                left_coord + position.x,
-                top_coord + position.y,
-                glyph.rect.w,
-                glyph.rect.h,
-            );
-            if self
-                .clipping_zone
-                .map_or(false, |clip| !clip.overlaps(&dest))
-            {
+            let dest = Rect::new(left_coord + position.x, top_coord + position.y, glyph.rect.w, glyph.rect.h);
+            if self.clipping_zone.map_or(false, |clip| !clip.overlaps(&dest)) {
                 let advance = font_data.advance;
                 return Some(advance);
             }
 
-            let source = self
-                .font_atlas
-                .lock()
-                .unwrap()
-                .get_uv_rect(font_data.sprite);
+            let source = self.font_atlas.borrow().get_uv_rect(font_data.sprite);
 
             if let Some(source) = source {
-                let cmd = DrawCommand::DrawCharacter {
-                    dest,
-                    source,
-                    color,
-                };
+                let cmd = DrawCommand::DrawCharacter { dest, source, color };
                 self.add_command(cmd);
                 return Some(font_data.advance);
             }
@@ -370,14 +300,7 @@ impl Painter {
         None
     }
 
-    pub fn draw_label<T: Into<LabelParams>>(
-        &mut self,
-        label: &str,
-        position: Vec2,
-        params: T,
-        font: &mut Font,
-        font_size: u16,
-    ) {
+    pub fn draw_label<T: Into<LabelParams>>(&mut self, label: &str, position: Vec2, params: T, font: &mut Font, font_size: u16) {
         if self.clipping_zone.map_or(false, |clip| {
             !clip.overlaps(&Rect::new(position.x - 150., position.y - 25., 200., 50.))
         }) {
@@ -389,23 +312,14 @@ impl Painter {
         let mut total_width = 0.;
         let position = vec2(position.x.trunc(), position.y.trunc());
         for character in label.chars() {
-            if let Some(advance) = self.draw_character(
-                character,
-                position + Vec2::new(total_width, 0.),
-                params.color,
-                font,
-                font_size,
-            ) {
+            if let Some(advance) = self.draw_character(character, position + Vec2::new(total_width, 0.), params.color, font, font_size) {
                 total_width += advance;
             }
         }
     }
 
     pub fn draw_raw_texture(&mut self, rect: Rect, texture: &Texture2D) {
-        if self
-            .clipping_zone
-            .map_or(false, |clip| !clip.overlaps(&rect))
-        {
+        if self.clipping_zone.map_or(false, |clip| !clip.overlaps(&rect)) {
             return;
         }
 
@@ -420,19 +334,11 @@ impl Painter {
         S: Into<Option<Color>>,
         T: Into<Option<Color>>,
     {
-        if self
-            .clipping_zone
-            .map_or(false, |clip| !clip.overlaps(&rect))
-        {
+        if self.clipping_zone.map_or(false, |clip| !clip.overlaps(&rect)) {
             return;
         }
 
-        let source = self
-            .font_atlas
-            .lock()
-            .unwrap()
-            .get_uv_rect(SpriteKey::Id(0))
-            .unwrap();
+        let source = self.font_atlas.borrow().get_uv_rect(SpriteKey::Id(0)).unwrap();
         self.add_command(DrawCommand::DrawRect {
             rect,
             source,
@@ -441,21 +347,12 @@ impl Painter {
         });
     }
 
-    pub fn draw_sprite(
-        &mut self,
-        rect: Rect,
-        sprite: SpriteKey,
-        color: Color,
-        margin: Option<RectOffset>,
-    ) {
-        if self
-            .clipping_zone
-            .map_or(false, |clip| !clip.overlaps(&rect))
-        {
+    pub fn draw_sprite(&mut self, rect: Rect, sprite: SpriteKey, color: Color, margin: Option<RectOffset>) {
+        if self.clipping_zone.map_or(false, |clip| !clip.overlaps(&rect)) {
             return;
         }
 
-        let atlas = self.font_atlas.lock().unwrap();
+        let atlas = self.font_atlas.borrow();
         let source_uv = atlas.get_uv_rect(sprite).unwrap();
         let (w, h) = (atlas.width(), atlas.height());
         drop(atlas);
@@ -478,18 +375,14 @@ impl Painter {
     where
         T: Into<Color>,
     {
-        if self.clipping_zone.map_or(false, |clip| {
-            !clip.contains(p0) && !clip.contains(p1) && !clip.contains(p2)
-        }) {
+        if self
+            .clipping_zone
+            .map_or(false, |clip| !clip.contains(p0) && !clip.contains(p1) && !clip.contains(p2))
+        {
             return;
         }
 
-        let source = self
-            .font_atlas
-            .lock()
-            .unwrap()
-            .get_uv_rect(SpriteKey::Id(0))
-            .unwrap();
+        let source = self.font_atlas.borrow().get_uv_rect(SpriteKey::Id(0)).unwrap();
 
         self.add_command(DrawCommand::DrawTriangle {
             p0,
@@ -508,12 +401,7 @@ impl Painter {
             return;
         }
 
-        let source = self
-            .font_atlas
-            .lock()
-            .unwrap()
-            .get_uv_rect(SpriteKey::Id(0))
-            .unwrap();
+        let source = self.font_atlas.borrow().get_uv_rect(SpriteKey::Id(0)).unwrap();
         self.add_command(DrawCommand::DrawLine {
             start,
             end,

@@ -1,7 +1,5 @@
 //! Functions to load fonts and draw text.
 
-use std::collections::HashMap;
-
 use crate::{
     color::Color,
     get_context, get_quad_context,
@@ -9,6 +7,9 @@ use crate::{
     texture::{Image, TextureHandle},
     Error,
 };
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 use crate::color::WHITE;
 use glam::vec2;
@@ -29,9 +30,9 @@ pub(crate) struct CharacterInfo {
 /// TTF font loaded to GPU
 #[derive(Clone)]
 pub struct Font {
-    font: Arc<fontdue::Font>,
-    atlas: Arc<Mutex<Atlas>>,
-    characters: Arc<Mutex<HashMap<(char, u16), CharacterInfo>>>,
+    font: Rc<fontdue::Font>,
+    atlas: Rc<RefCell<Atlas>>,
+    characters: Rc<RefCell<HashMap<(char, u16), CharacterInfo>>>,
 }
 
 /// World space dimensions of the text, measured by "measure_text" function
@@ -47,40 +48,26 @@ pub struct TextDimensions {
     pub offset_y: f32,
 }
 
-#[allow(dead_code)]
-fn require_fn_to_be_send() {
-    fn require_send<T: Send>() {}
-    require_send::<Font>();
-}
-
 impl std::fmt::Debug for Font {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Font")
-            .field("font", &"fontdue::Font")
-            .finish()
+        f.debug_struct("Font").field("font", &"fontdue::Font").finish()
     }
 }
 
 impl Font {
-    pub(crate) fn load_from_bytes(atlas: Arc<Mutex<Atlas>>, bytes: &[u8]) -> Result<Font, Error> {
+    pub(crate) fn load_from_bytes(atlas: Rc<RefCell<Atlas>>, bytes: &[u8]) -> Result<Font, Error> {
         Ok(Font {
-            font: Arc::new(fontdue::Font::from_bytes(
-                bytes,
-                fontdue::FontSettings::default(),
-            )?),
-            characters: Arc::new(Mutex::new(HashMap::new())),
+            font: Rc::new(fontdue::Font::from_bytes(bytes, fontdue::FontSettings::default())?),
+            characters: Rc::new(RefCell::new(HashMap::new())),
             atlas,
         })
     }
 
-    pub(crate) fn set_atlas(&mut self, atlas: Arc<Mutex<Atlas>>) {
+    pub(crate) fn set_atlas(&mut self, atlas: Rc<RefCell<Atlas>>) {
         self.atlas = atlas;
     }
 
-    pub(crate) fn set_characters(
-        &mut self,
-        characters: Arc<Mutex<HashMap<(char, u16), CharacterInfo>>>,
-    ) {
+    pub(crate) fn set_characters(&mut self, characters: Rc<RefCell<HashMap<(char, u16), CharacterInfo>>>) {
         self.characters = characters;
     }
 
@@ -89,10 +76,7 @@ impl Font {
     }
 
     pub(crate) fn descent(&self, font_size: f32) -> f32 {
-        self.font
-            .horizontal_line_metrics(font_size)
-            .unwrap()
-            .descent
+        self.font.horizontal_line_metrics(font_size).unwrap().descent
     }
 
     pub(crate) fn cache_glyph(&self, character: char, size: u16) {
@@ -104,14 +88,11 @@ impl Font {
 
         let (width, height) = (metrics.width as u16, metrics.height as u16);
 
-        let sprite = self.atlas.lock().unwrap().new_unique_id();
-        self.atlas.lock().unwrap().cache_sprite(
+        let sprite = self.atlas.borrow_mut().new_unique_id();
+        self.atlas.borrow_mut().cache_sprite(
             sprite,
             Image {
-                bytes: bitmap
-                    .iter()
-                    .flat_map(|coverage| vec![255, 255, 255, *coverage])
-                    .collect(),
+                bytes: bitmap.iter().flat_map(|coverage| vec![255, 255, 255, *coverage]).collect(),
                 width,
                 height,
             },
@@ -127,34 +108,18 @@ impl Font {
             sprite,
         };
 
-        self.characters
-            .lock()
-            .unwrap()
-            .insert((character, size), character_info);
+        self.characters.borrow_mut().insert((character, size), character_info);
     }
 
     pub(crate) fn get(&self, character: char, size: u16) -> Option<CharacterInfo> {
-        self.characters
-            .lock()
-            .unwrap()
-            .get(&(character, size))
-            .cloned()
+        self.characters.borrow().get(&(character, size)).cloned()
     }
     /// Returns whether the character has been cached
     pub(crate) fn contains(&self, character: char, size: u16) -> bool {
-        self.characters
-            .lock()
-            .unwrap()
-            .contains_key(&(character, size))
+        self.characters.borrow().contains_key(&(character, size))
     }
 
-    pub(crate) fn measure_text(
-        &self,
-        text: impl AsRef<str>,
-        font_size: u16,
-        font_scale_x: f32,
-        font_scale_y: f32,
-    ) -> TextDimensions {
+    pub(crate) fn measure_text(&self, text: impl AsRef<str>, font_size: u16, font_scale_x: f32, font_scale_y: f32) -> TextDimensions {
         let text = text.as_ref();
 
         let dpi_scaling = miniquad::window::dpi_scale();
@@ -169,10 +134,10 @@ impl Font {
                 self.cache_glyph(character, font_size);
             }
 
-            let font_data = &self.characters.lock().unwrap()[&(character, font_size)];
+            let font_data = &self.characters.borrow()[&(character, font_size)];
             let offset_y = font_data.offset_y as f32 * font_scale_y;
 
-            let atlas = self.atlas.lock().unwrap();
+            let atlas = self.atlas.borrow();
             let glyph = atlas.get(font_data.sprite).unwrap().rect;
             width += font_data.advance * font_scale_x;
             min_y = min_y.min(offset_y);
@@ -220,7 +185,7 @@ impl Font {
     /// # }
     /// ```
     pub fn set_filter(&mut self, filter_mode: miniquad::FilterMode) {
-        self.atlas.lock().unwrap().set_filter(filter_mode);
+        self.atlas.borrow_mut().set_filter(filter_mode);
     }
 
     // pub fn texture(&self) -> Texture2D {
@@ -282,10 +247,7 @@ pub async fn load_ttf_font(path: &str) -> Result<Font, Error> {
 /// let font = load_ttf_font_from_bytes(include_bytes!("font.ttf"));
 /// ```
 pub fn load_ttf_font_from_bytes(bytes: &[u8]) -> Result<Font, Error> {
-    let atlas = Arc::new(Mutex::new(Atlas::new(
-        get_quad_context(),
-        miniquad::FilterMode::Linear,
-    )));
+    let atlas = Rc::new(RefCell::new(Atlas::new(get_quad_context(), miniquad::FilterMode::Linear)));
 
     let mut font = Font::load_from_bytes(atlas.clone(), bytes)?;
 
@@ -300,13 +262,7 @@ pub fn load_ttf_font_from_bytes(bytes: &[u8]) -> Result<Font, Error> {
 
 /// Draw text with given font_size
 /// Returns text size
-pub fn draw_text(
-    text: impl AsRef<str>,
-    x: f32,
-    y: f32,
-    font_size: f32,
-    color: Color,
-) -> TextDimensions {
+pub fn draw_text(text: impl AsRef<str>, x: f32, y: f32, font_size: f32, color: Color) -> TextDimensions {
     draw_text_ex(
         text,
         x,
@@ -329,9 +285,7 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) -
         return TextDimensions::default();
     }
 
-    let font = params
-        .font
-        .unwrap_or(&get_context().fonts_storage.default_font);
+    let font = params.font.unwrap_or_else(|| &get_context().fonts_storage.default_font);
 
     let dpi_scaling = miniquad::window::dpi_scale();
 
@@ -344,24 +298,25 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) -
     let mut max_offset_y = f32::MIN;
     let mut min_offset_y = f32::MAX;
 
+    let rot_cos = rot.cos();
+    let rot_sin = rot.sin();
+
     for character in text.chars() {
         if !font.contains(character, font_size) {
             font.cache_glyph(character, font_size);
         }
 
-        let char_data = &font.characters.lock().unwrap()[&(character, font_size)];
+        let char_data = &font.characters.borrow()[&(character, font_size)];
         let offset_x = char_data.offset_x as f32 * font_scale_x;
         let offset_y = char_data.offset_y as f32 * font_scale_y;
 
-        let mut atlas = font.atlas.lock().unwrap();
-        let glyph = atlas.get(char_data.sprite).unwrap().rect;
+        let mut atlas = font.atlas.borrow_mut();
+        let glyph = atlas.get(char_data.sprite).as_ref().unwrap().rect;
         let glyph_scaled_h = glyph.h * font_scale_y;
 
         min_offset_y = min_offset_y.min(offset_y);
         max_offset_y = max_offset_y.max(glyph_scaled_h + offset_y);
 
-        let rot_cos = rot.cos();
-        let rot_sin = rot.sin();
         let dest_x = (offset_x + total_width) * rot_cos + (glyph_scaled_h + offset_y) * rot_sin;
         let dest_y = (offset_x + total_width) * rot_sin + (-glyph_scaled_h - offset_y) * rot_cos;
 
@@ -400,14 +355,7 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) -
 
 /// Draw multiline text with the given font_size, line_distance_factor and color.
 /// If no line distance but a custom font is given, the fonts line gap will be used as line distance factor if it exists.
-pub fn draw_multiline_text(
-    text: impl AsRef<str>,
-    x: f32,
-    y: f32,
-    font_size: f32,
-    line_distance_factor: Option<f32>,
-    color: Color,
-) {
+pub fn draw_multiline_text(text: impl AsRef<str>, x: f32, y: f32, font_size: f32, line_distance_factor: Option<f32>, color: Color) {
     draw_multiline_text_ex(
         text,
         x,
@@ -424,24 +372,14 @@ pub fn draw_multiline_text(
 
 /// Draw multiline text with the given line distance and custom params such as font, font size and font scale.
 /// If no line distance but a custom font is given, the fonts newline size will be used as line distance factor if it exists, else default to font size.
-pub fn draw_multiline_text_ex(
-    text: impl AsRef<str>,
-    mut x: f32,
-    mut y: f32,
-    line_distance_factor: Option<f32>,
-    params: TextParams,
-) {
+pub fn draw_multiline_text_ex(text: impl AsRef<str>, mut x: f32, mut y: f32, line_distance_factor: Option<f32>, params: TextParams) {
     let text = text.as_ref();
 
     let line_distance = match line_distance_factor {
         Some(distance) => distance,
         None => {
             let mut font_line_distance = 0.0;
-            let font = if let Some(font) = params.font {
-                font
-            } else {
-                &get_default_font()
-            };
+            let font = if let Some(font) = params.font { font } else { &get_default_font() };
             if let Some(metrics) = font.font.horizontal_line_metrics(1.0) {
                 font_line_distance = metrics.new_line_size;
             }
@@ -458,13 +396,7 @@ pub fn draw_multiline_text_ex(
 }
 
 /// Get the text center.
-pub fn get_text_center(
-    text: impl AsRef<str>,
-    font: Option<&Font>,
-    font_size: u16,
-    font_scale: f32,
-    rotation: f32,
-) -> crate::Vec2 {
+pub fn get_text_center(text: impl AsRef<str>, font: Option<&Font>, font_size: u16, font_scale: f32, rotation: f32) -> crate::Vec2 {
     let measure = measure_text(text, font, font_size, font_scale);
 
     let x_center = measure.width / 2.0 * rotation.cos() + measure.height / 2.0 * rotation.sin();
@@ -473,12 +405,7 @@ pub fn get_text_center(
     crate::Vec2::new(x_center, y_center)
 }
 
-pub fn measure_text(
-    text: impl AsRef<str>,
-    font: Option<&Font>,
-    font_size: u16,
-    font_scale: f32,
-) -> TextDimensions {
+pub fn measure_text(text: impl AsRef<str>, font: Option<&Font>, font_size: u16, font_scale: f32) -> TextDimensions {
     let font = font.unwrap_or_else(|| &get_context().fonts_storage.default_font);
 
     font.measure_text(text, font_size, font_scale, font_scale)
@@ -490,7 +417,7 @@ pub(crate) struct FontsStorage {
 
 impl FontsStorage {
     pub(crate) fn new(ctx: &mut dyn miniquad::RenderingBackend) -> FontsStorage {
-        let atlas = Arc::new(Mutex::new(Atlas::new(ctx, miniquad::FilterMode::Linear)));
+        let atlas = Rc::new(RefCell::new(Atlas::new(ctx, miniquad::FilterMode::Linear)));
 
         let default_font = Font::load_from_bytes(atlas, include_bytes!("ProggyClean.ttf")).unwrap();
         FontsStorage { default_font }
@@ -515,10 +442,7 @@ pub fn set_default_font(font: Font) {
 pub fn camera_font_scale(world_font_size: f32) -> (u16, f32, f32) {
     let context = get_context();
     let (scr_w, scr_h) = miniquad::window::screen_size();
-    let cam_space = context
-        .projection_matrix()
-        .inverse()
-        .transform_vector3(vec3(2., 2., 0.));
+    let cam_space = context.projection_matrix().inverse().transform_vector3(vec3(2., 2., 0.));
     let (cam_w, cam_h) = (cam_space.x.abs(), cam_space.y.abs());
 
     let screen_font_size = world_font_size * scr_h / cam_h;

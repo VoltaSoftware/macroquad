@@ -40,10 +40,7 @@ impl<'a, 'b, 'c> ComboBox<'a, 'b, 'c> {
     }
 
     pub const fn size(self, size: Vec2) -> Self {
-        Self {
-            size: Some(size),
-            ..self
-        }
+        Self { size: Some(size), ..self }
     }
 
     pub const fn position(self, pos: Vec2) -> Self {
@@ -73,22 +70,17 @@ impl<'a, 'b, 'c> ComboBox<'a, 'b, 'c> {
         let active_area_w = size.x * self.ratio;
 
         let text_measures = {
-            let font = &mut *context.style.label_style.font.lock().unwrap();
+            let font = context.style.label_style.font.borrow();
             let font_size = context.style.label_style.font_size;
 
-            context
-                .window
-                .painter
-                .label_size(self.label, None, font, font_size)
+            context.window.painter.label_size(self.label, None, &font, font_size)
         };
 
         let clickable_rect = Rect::new(pos.x, pos.y, active_area_w, size.y);
 
         let (hovered, _) = context.register_click_intention(clickable_rect);
 
-        let state = context
-            .storage_any
-            .get_or_default::<bool>(hash!(self.id, "combobox_state"));
+        let state = context.storage_any.get_or_default::<bool>(hash!(self.id, "combobox_state"));
 
         if context.window.was_active == false {
             *state = false;
@@ -139,30 +131,18 @@ impl<'a, 'b, 'c> ComboBox<'a, 'b, 'c> {
         } else if *state
             && (context.input.escape
                 || context.input.enter
-                || (modal_rect.contains(context.input.mouse_position) == false
-                    && context.input.click_down))
+                || (modal_rect.contains(context.input.mouse_position) == false && context.input.click_down))
         {
             *state = false;
         }
 
         if *state {
-            let context = ui.begin_modal(
-                hash!("combobox", self.id),
-                pos + Vec2::new(0., 20.),
-                modal_size,
-            );
+            let context = ui.begin_modal(hash!("combobox", self.id), pos + Vec2::new(0., 20.), modal_size);
 
-            let state = context
-                .storage_any
-                .get_or_default::<bool>(hash!(self.id, "combobox_state"));
+            let state = context.storage_any.get_or_default::<bool>(hash!(self.id, "combobox_state"));
 
             for (i, variant) in self.variants.iter().enumerate() {
-                let rect = Rect::new(
-                    pos.x + 5.0,
-                    pos.y + i as f32 * size.y + size.y,
-                    active_area_w - 5.0,
-                    size.y,
-                );
+                let rect = Rect::new(pos.x + 5.0, pos.y + i as f32 * size.y + size.y, active_area_w - 5.0, size.y);
                 let hovered = rect.contains(context.input.mouse_position);
 
                 let color = context.style.combobox_style.color(ElementState {
@@ -181,15 +161,12 @@ impl<'a, 'b, 'c> ComboBox<'a, 'b, 'c> {
                     color,
                 );
 
-                let font = &mut *context.style.label_style.font.lock().unwrap();
+                let font = &mut *context.style.label_style.font.borrow_mut();
                 let font_size = context.style.label_style.font_size;
 
                 context.window.painter.draw_label(
                     variant,
-                    Vec2::new(
-                        pos.x + 7.,
-                        pos.y + i as f32 * size.y + size.y + 2.0 + text_measures.offset_y,
-                    ),
+                    Vec2::new(pos.x + 7., pos.y + i as f32 * size.y + size.y + 2.0 + text_measures.offset_y),
                     context.style.combobox_style.text_color,
                     font,
                     font_size,
@@ -208,22 +185,14 @@ impl<'a, 'b, 'c> ComboBox<'a, 'b, 'c> {
 }
 
 impl Ui {
-    pub fn combo_box<'a>(
-        &mut self,
-        id: Id,
-        label: &str,
-        variants: &[&str],
-        data: impl Into<Option<&'a mut usize>>,
-    ) -> usize {
+    pub fn combo_box<'a>(&mut self, id: Id, label: &str, variants: &[&str], data: impl Into<Option<&'a mut usize>>) -> usize {
         if let Some(r) = data.into() {
             ComboBox::new(id, variants).label(label).ui(self, r)
         } else {
             let data_id = hash!(id, "selected_variant");
             let mut selected_variant = { *self.get_any(data_id) };
 
-            ComboBox::new(id, variants)
-                .label(label)
-                .ui(self, &mut selected_variant);
+            ComboBox::new(id, variants).label(label).ui(self, &mut selected_variant);
 
             *self.get_any(data_id) = selected_variant;
 
