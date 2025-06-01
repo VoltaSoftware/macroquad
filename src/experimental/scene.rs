@@ -135,10 +135,7 @@ impl<T: 'static> RefMut<T> {
     }
 
     pub fn persist(&self) {
-        unsafe { get_scene() }.nodes[self.handle.id.unwrap().id]
-            .as_mut()
-            .unwrap()
-            .permanent = true;
+        unsafe { get_scene() }.nodes[self.handle.id.unwrap().id].as_mut().unwrap().permanent = true;
     }
 
     pub fn provides<S: std::any::Any + Copy>(&mut self, x: S) {
@@ -358,10 +355,7 @@ impl Scene {
         self.any_map.clear();
 
         for cell in &mut self.nodes {
-            if let Some(Cell {
-                permanent: false, ..
-            }) = cell
-            {
+            if let Some(Cell { permanent: false, .. }) = cell {
                 if let Some(cell) = cell.take() {
                     assert!(unsafe { *cell.used == false });
 
@@ -422,11 +416,7 @@ impl Scene {
     fn add_node<T: Node + 'static>(&mut self, data: T) -> Handle<T> {
         let id;
 
-        if let Some(i) = self
-            .free_nodes
-            .iter()
-            .position(|free_node| free_node.data_len >= size_of::<T>())
-        {
+        if let Some(i) = self.free_nodes.iter().position(|free_node| free_node.data_len >= size_of::<T>()) {
             let mut free_node = self.free_nodes.remove(i);
 
             free_node.update::<T>(data);
@@ -611,9 +601,7 @@ pub fn clear() {
 
 /// Get node and panic if the node is borrowed or deleted
 pub fn get_node<T: Node>(handle: Handle<T>) -> RefMut<T> {
-    unsafe { get_scene() }
-        .get(handle)
-        .expect(&format!("No such node: {:?}", handle.id))
+    unsafe { get_scene() }.get(handle).expect(&format!("No such node: {:?}", handle.id))
 }
 
 pub fn try_get_node<T: Node>(handle: Handle<T>) -> Option<RefMut<T>> {

@@ -49,10 +49,7 @@ impl<'a> TreeNode<'a> {
 
         let clicked = context.focused && hovered && context.input.click_down();
 
-        let opened = context
-            .storage_u32
-            .entry(self.id)
-            .or_insert(if self.init_unfolded { 1 } else { 0 });
+        let opened = context.storage_u32.entry(self.id).or_insert(if self.init_unfolded { 1 } else { 0 });
 
         if clicked {
             *opened ^= 1;

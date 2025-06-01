@@ -7,9 +7,7 @@ macro_rules! impl_tobytes {
     ($t:tt) => {
         impl ToBytes for $t {
             fn to_bytes(&self) -> &[u8] {
-                unsafe {
-                    std::slice::from_raw_parts(self as *const _ as *const u8, size_of::<$t>())
-                }
+                unsafe { std::slice::from_raw_parts(self as *const _ as *const u8, size_of::<$t>()) }
             }
         }
     };
@@ -30,11 +28,6 @@ impl<T: ToBytes, const N: usize> ToBytes for &[T; N] {
 
 impl<T: ToBytes> ToBytes for &[T] {
     fn to_bytes(&self) -> &[u8] {
-        unsafe {
-            std::slice::from_raw_parts(
-                self.as_ptr() as *const _ as *const u8,
-                size_of::<T>() * self.len(),
-            )
-        }
+        unsafe { std::slice::from_raw_parts(self.as_ptr() as *const _ as *const u8, size_of::<T>() * self.len()) }
     }
 }

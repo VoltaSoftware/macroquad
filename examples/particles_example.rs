@@ -70,13 +70,7 @@ async fn main() {
 
         draw_text("World coord emitter", 20.0, 30.0, 30.0, GREEN);
 
-        draw_text(
-            "One shot emitter, press Space to emit",
-            20.0,
-            60.0,
-            30.0,
-            YELLOW,
-        );
+        draw_text("One shot emitter, press Space to emit", 20.0, 60.0, 30.0, YELLOW);
         one_shot_emitter.draw(vec2(650.0, 82.0));
         draw_circle(650.0, 82.0, 15.0, YELLOW);
 

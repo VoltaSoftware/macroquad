@@ -72,19 +72,10 @@ impl DrawList {
         );
     }
 
-    fn draw_sprite(
-        &mut self,
-        rect: Rect,
-        src: Rect,
-        offsets: RectOffset,
-        uv_offsets: RectOffset,
-        color: Color,
-    ) {
+    fn draw_sprite(&mut self, rect: Rect, src: Rect, offsets: RectOffset, uv_offsets: RectOffset, color: Color) {
         let Rect { x, y, w, h } = rect;
 
-        let RectOffset {
-            left, right, top, ..
-        } = offsets;
+        let RectOffset { left, right, top, .. } = offsets;
 
         let RectOffset {
             left: left0,
@@ -100,8 +91,7 @@ impl DrawList {
         let vs = [src.y, src.y + top0, src.y + src.h - bottom0, src.y + src.h];
 
         let mut n = 0;
-        let mut vertices =
-            [Vertex::new(0.0, 0.0, 0.0, 0.0, 0.0, Color::new(0.0, 0.0, 0.0, 0.0)); 16];
+        let mut vertices = [Vertex::new(0.0, 0.0, 0.0, 0.0, 0.0, Color::new(0.0, 0.0, 0.0, 0.0)); 16];
 
         for (x, u) in xs.iter().zip(us.iter()) {
             for (y, v) in ys.iter().zip(vs.iter()) {
@@ -131,8 +121,7 @@ impl DrawList {
 
         let indices_offset = self.vertices.len() as u16;
         self.vertices.extend_from_slice(&vertices[..]);
-        self.indices
-            .extend(indices.iter().map(|i| i + indices_offset));
+        self.indices.extend(indices.iter().map(|i| i + indices_offset));
     }
 
     fn draw_rectangle(&mut self, rect: Rect, src: Rect, color: Color) {
@@ -149,8 +138,7 @@ impl DrawList {
 
         let indices_offset = self.vertices.len() as u16;
         self.vertices.extend_from_slice(&vertices[..]);
-        self.indices
-            .extend(indices.iter().map(|i| i + indices_offset));
+        self.indices.extend(indices.iter().map(|i| i + indices_offset));
     }
 
     fn draw_triangle(&mut self, p0: Vec2, p1: Vec2, p2: Vec2, source: Rect, color: Color) {
@@ -163,20 +151,10 @@ impl DrawList {
 
         let indices_offset = self.vertices.len() as u16;
         self.vertices.extend_from_slice(&vertices[..]);
-        self.indices
-            .extend(indices.iter().map(|i| i + indices_offset));
+        self.indices.extend(indices.iter().map(|i| i + indices_offset));
     }
 
-    pub fn draw_line(
-        &mut self,
-        x1: f32,
-        y1: f32,
-        x2: f32,
-        y2: f32,
-        thickness: f32,
-        source: Rect,
-        color: Color,
-    ) {
+    pub fn draw_line(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, source: Rect, color: Color) {
         let dx = x2 - x1;
         let dy = y2 - y1;
         let nx = -dy; // https://stackoverflow.com/questions/1243614/how-do-i-calculate-the-normal-vector-of-a-line-segment
@@ -199,15 +177,11 @@ impl DrawList {
 
         let indices_offset = self.vertices.len() as u16;
         self.vertices.extend_from_slice(&vertices[..]);
-        self.indices
-            .extend(indices.iter().map(|i| i + indices_offset));
+        self.indices.extend(indices.iter().map(|i| i + indices_offset));
     }
 }
 
-fn get_active_draw_list<'a, 'b>(
-    draw_lists: &'a mut Vec<DrawList>,
-    command: &'b DrawCommand,
-) -> &'a mut DrawList {
+fn get_active_draw_list<'a, 'b>(draw_lists: &'a mut Vec<DrawList>, command: &'b DrawCommand) -> &'a mut DrawList {
     if draw_lists.len() == 0 {
         draw_lists.push(DrawList::new());
     }
@@ -220,11 +194,7 @@ fn get_active_draw_list<'a, 'b>(
             }
         }
         DrawCommand::DrawRawTexture { texture, .. } => {
-            if !last
-                .texture
-                .as_ref()
-                .map_or(false, |t| t.texture == texture.texture)
-            {
+            if !last.texture.as_ref().map_or(false, |t| t.texture == texture.texture) {
                 let clipping_zone = last.clipping_zone;
 
                 draw_lists.push(DrawList {
@@ -241,10 +211,7 @@ fn get_active_draw_list<'a, 'b>(
         | DrawCommand::DrawTriangle { .. } => {
             let (vertices, indices) = command.estimate_triangles_budget();
 
-            if last.texture != None
-                || last.vertices.len() + vertices >= MAX_VERTICES
-                || last.indices.len() + indices >= MAX_INDICES
-            {
+            if last.texture != None || last.vertices.len() + vertices >= MAX_VERTICES || last.indices.len() + indices >= MAX_INDICES {
                 let clipping_zone = last.clipping_zone;
 
                 draw_lists.push(DrawList {
@@ -284,43 +251,18 @@ pub(crate) fn render_command(draw_lists: &mut Vec<DrawList>, command: DrawComman
             offsets,
             offsets_uv,
         } => {
-            active_draw_list.draw_sprite(
-                rect,
-                source,
-                offsets.unwrap_or_default(),
-                offsets_uv.unwrap_or_default(),
-                color,
-            );
+            active_draw_list.draw_sprite(rect, source, offsets.unwrap_or_default(), offsets_uv.unwrap_or_default(), color);
         }
-        DrawCommand::DrawLine {
-            start,
-            end,
-            source,
-            color,
-        } => {
+        DrawCommand::DrawLine { start, end, source, color } => {
             active_draw_list.draw_line(start.x, start.y, end.x, end.y, 1., source, color);
         }
-        DrawCommand::DrawCharacter {
-            dest,
-            source,
-            color,
-        } => {
+        DrawCommand::DrawCharacter { dest, source, color } => {
             active_draw_list.draw_rectangle(dest, source, color);
         }
         DrawCommand::DrawRawTexture { rect, .. } => {
-            active_draw_list.draw_rectangle(
-                rect,
-                Rect::new(0., 0., 1., 1.),
-                Color::new(1., 1., 1., 1.),
-            );
+            active_draw_list.draw_rectangle(rect, Rect::new(0., 0., 1., 1.), Color::new(1., 1., 1., 1.));
         }
-        DrawCommand::DrawTriangle {
-            p0,
-            p1,
-            p2,
-            source,
-            color,
-        } => {
+        DrawCommand::DrawTriangle { p0, p1, p2, source, color } => {
             active_draw_list.draw_triangle(p0, p1, p2, source, color);
         }
     }

@@ -75,18 +75,12 @@ impl Rect {
 
     /// Checks whether the `Rect` contains a `Point`.
     pub const fn contains(&self, point: Vec2) -> bool {
-        point.x >= self.left()
-            && point.x <= self.right()
-            && point.y <= self.bottom()
-            && point.y >= self.top()
+        point.x >= self.left() && point.x <= self.right() && point.y <= self.bottom() && point.y >= self.top()
     }
 
     /// Checks whether the `Rect` overlaps another `Rect`.
     pub const fn overlaps(&self, other: &Rect) -> bool {
-        self.left() <= other.right()
-            && self.right() >= other.left()
-            && self.top() <= other.bottom()
-            && self.bottom() >= other.top()
+        self.left() <= other.right() && self.right() >= other.left() && self.top() <= other.bottom() && self.bottom() >= other.top()
     }
 
     /// Returns a new `Rect` that includes all points of these two `Rect`s.
@@ -133,12 +127,7 @@ pub struct RectOffset {
 
 impl RectOffset {
     pub const fn new(left: f32, right: f32, top: f32, bottom: f32) -> RectOffset {
-        RectOffset {
-            left,
-            right,
-            top,
-            bottom,
-        }
+        RectOffset { left, right, top, bottom }
     }
 }
 

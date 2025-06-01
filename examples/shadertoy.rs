@@ -96,12 +96,7 @@ async fn main() {
 
         set_camera(&camera);
 
-        draw_grid(
-            20,
-            1.,
-            Color::new(0.55, 0.55, 0.55, 0.75),
-            Color::new(0.75, 0.75, 0.75, 0.75),
-        );
+        draw_grid(20, 1., Color::new(0.55, 0.55, 0.55, 0.75), Color::new(0.75, 0.75, 0.75, 0.75));
 
         gl_use_material(&material);
         match mesh {
@@ -196,9 +191,7 @@ async fn main() {
                                 .filter_numbers()
                                 .ui(ui, z);
 
-                            if let (Ok(x), Ok(y), Ok(z)) =
-                                (x.parse::<f32>(), y.parse::<f32>(), z.parse::<f32>())
-                            {
+                            if let (Ok(x), Ok(y), Ok(z)) = (x.parse::<f32>(), y.parse::<f32>(), z.parse::<f32>()) {
                                 material.set_uniform(name, (x, y, z));
                             }
                         }
@@ -226,13 +219,11 @@ async fn main() {
                 if ui.button(None, "New uniform") {
                     new_uniform_window = true;
                 }
-                TreeNode::new(hash!(), "Fragment shader")
-                    .init_unfolded()
-                    .ui(ui, |ui| {
-                        if ui.editbox(hash!(), vec2(440., 200.), &mut fragment_shader) {
-                            need_update = true;
-                        };
-                    });
+                TreeNode::new(hash!(), "Fragment shader").init_unfolded().ui(ui, |ui| {
+                    if ui.editbox(hash!(), vec2(440., 200.), &mut fragment_shader) {
+                        need_update = true;
+                    };
+                });
                 ui.tree_node(hash!(), "Vertex shader", |ui| {
                     if ui.editbox(hash!(), vec2(440., 300.), &mut vertex_shader) {
                         need_update = true;
@@ -252,23 +243,14 @@ async fn main() {
                         new_uniform_window = false;
                     }
                     ui.input_text(hash!(), "Name", &mut new_uniform_name);
-                    let uniform_type = ui.combo_box(
-                        hash!(),
-                        "Type",
-                        &["Float1", "Float2", "Float3", "Color"],
-                        None,
-                    );
+                    let uniform_type = ui.combo_box(hash!(), "Type", &["Float1", "Float2", "Float3", "Color"], None);
 
                     if ui.button(None, "Add") {
                         if new_uniform_name.is_empty() == false {
                             let uniform = match uniform_type {
                                 0 => Uniform::Float1("0".to_string()),
                                 1 => Uniform::Float2("0".to_string(), "0".to_string()),
-                                2 => Uniform::Float3(
-                                    "0".to_string(),
-                                    "0".to_string(),
-                                    "0".to_string(),
-                                ),
+                                2 => Uniform::Float3("0".to_string(), "0".to_string(), "0".to_string()),
                                 3 => Uniform::Color(vec3(0.0, 0.0, 0.0)),
                                 _ => unreachable!(),
                             };
@@ -300,18 +282,14 @@ async fn main() {
                     let x = mouse.0 as i32 - cursor.x as i32;
                     let y = mouse.1 as i32 - (cursor.y as i32 + 20);
 
-                    let color = color_picker_image
-                        .get_pixel(x.max(0).min(199) as u32, y.max(0).min(199) as u32);
+                    let color = color_picker_image.get_pixel(x.max(0).min(199) as u32, y.max(0).min(199) as u32);
 
                     canvas.rect(
                         Rect::new(cursor.x, cursor.y, 200.0, 18.0),
                         Color::new(0.0, 0.0, 0.0, 1.0),
                         Color::new(color.r, color.g, color.b, 1.0),
                     );
-                    canvas.image(
-                        Rect::new(cursor.x, cursor.y + 20.0, 200.0, 200.0),
-                        &color_picker_texture,
-                    );
+                    canvas.image(Rect::new(cursor.x, cursor.y + 20.0, 200.0, 200.0), &color_picker_texture);
 
                     if x >= 0 && x < 200 && y >= 0 && y < 200 {
                         canvas.rect(
@@ -324,11 +302,8 @@ async fn main() {
                             colorpicker_window = false;
                             let uniform_name = color_picking_uniform.take().unwrap();
 
-                            uniforms
-                                .iter_mut()
-                                .find(|(name, _)| name == &uniform_name)
-                                .unwrap()
-                                .1 = Uniform::Color(vec3(color.r, color.g, color.b));
+                            uniforms.iter_mut().find(|(name, _)| name == &uniform_name).unwrap().1 =
+                                Uniform::Color(vec3(color.r, color.g, color.b));
                         }
                     }
                 });

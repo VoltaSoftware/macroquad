@@ -168,18 +168,10 @@ impl MagicSnapshotter {
              1.0,  1.0, 1., 1. ,
             -1.0,  1.0, 0., 1. ,
         ];
-        let vertex_buffer = ctx.new_buffer(
-            BufferType::VertexBuffer,
-            BufferUsage::Immutable,
-            BufferSource::slice(&vertices),
-        );
+        let vertex_buffer = ctx.new_buffer(BufferType::VertexBuffer, BufferUsage::Immutable, BufferSource::slice(&vertices));
 
         let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
-        let index_buffer = ctx.new_buffer(
-            BufferType::IndexBuffer,
-            BufferUsage::Immutable,
-            BufferSource::slice(&indices),
-        );
+        let index_buffer = ctx.new_buffer(BufferType::IndexBuffer, BufferUsage::Immutable, BufferSource::slice(&indices));
 
         let bindings = Bindings {
             vertex_buffers: vec![vertex_buffer],
@@ -199,12 +191,7 @@ impl MagicSnapshotter {
         if let Some(camera_render_pass) = camera_render_pass {
             let texture = ctx.render_pass_texture(camera_render_pass);
             if self.pass.is_none() {
-                let miniquad::TextureParams {
-                    width,
-                    height,
-                    format,
-                    ..
-                } = ctx.texture_params(texture);
+                let miniquad::TextureParams { width, height, format, .. } = ctx.texture_params(texture);
                 let color_img = ctx.new_render_texture(TextureParams {
                     width,
                     height,
@@ -221,10 +208,7 @@ impl MagicSnapshotter {
             } else {
                 self.bindings.images[0] = texture;
             }
-            ctx.begin_pass(
-                Some(self.pass.unwrap()),
-                PassAction::clear_color(1.0, 0.0, 1.0, 1.),
-            );
+            ctx.begin_pass(Some(self.pass.unwrap()), PassAction::clear_color(1.0, 0.0, 1.0, 1.));
             ctx.apply_pipeline(&self.pipeline);
             ctx.apply_bindings(&self.bindings);
             ctx.draw(0, 6, 1);
@@ -295,11 +279,7 @@ struct PipelineExt {
 
 impl PipelineExt {
     fn set_uniform<T>(&mut self, name: &str, uniform: T) {
-        let uniform_meta = self.uniforms.iter().find(
-            |Uniform {
-                 name: uniform_name, ..
-             }| uniform_name == name,
-        );
+        let uniform_meta = self.uniforms.iter().find(|Uniform { name: uniform_name, .. }| uniform_name == name);
         if uniform_meta.is_none() {
             warn!("Trying to set non-existing uniform: {}", name);
             return;
@@ -341,11 +321,7 @@ impl PipelineExt {
     }
 
     fn set_uniform_array<T: ToBytes>(&mut self, name: &str, uniform: &[T]) {
-        let uniform_meta = self.uniforms.iter().find(
-            |Uniform {
-                 name: uniform_name, ..
-             }| uniform_name == name,
-        );
+        let uniform_meta = self.uniforms.iter().find(|Uniform { name: uniform_name, .. }| uniform_name == name);
         if uniform_meta.is_none() {
             warn!("Trying to set non-existing uniform: {}", name);
             return;
@@ -390,9 +366,7 @@ impl PipelinesStorage {
                         vertex: shader::VERTEX,
                         fragment: shader::FRAGMENT,
                     },
-                    Backend::Metal => ShaderSource::Msl {
-                        program: shader::METAL,
-                    },
+                    Backend::Metal => ShaderSource::Msl { program: shader::METAL },
                 },
                 shader::meta(),
             )
@@ -570,11 +544,7 @@ pub struct QuadGl {
 }
 
 impl QuadGl {
-    pub fn new(
-        ctx: &mut dyn miniquad::RenderingBackend,
-        max_vertices: usize,
-        max_indices: usize,
-    ) -> QuadGl {
+    pub fn new(ctx: &mut dyn miniquad::RenderingBackend, max_vertices: usize, max_indices: usize) -> QuadGl {
         let white_texture = ctx.new_texture_from_rgba8(1, 1, &[255, 255, 255, 255]);
 
         QuadGl {
@@ -626,9 +596,7 @@ impl QuadGl {
                 );
             }
             if texture == "_ScreenTexture" {
-                panic!(
-                    "you can't use name `_ScreenTexture` for your texture in shaders. This name is reserved for screen texture"
-                );
+                panic!("you can't use name `_ScreenTexture` for your texture in shaders. This name is reserved for screen texture");
             }
             shader_meta.images.push(texture.clone());
         }
@@ -639,14 +607,9 @@ impl QuadGl {
         };
         let wants_screen_texture = source.contains("_ScreenTexture");
         let shader = ctx.new_shader(shader, shader_meta)?;
-        Ok(self.pipelines.make_pipeline(
-            ctx,
-            shader,
-            params,
-            wants_screen_texture,
-            uniforms,
-            textures,
-        ))
+        Ok(self
+            .pipelines
+            .make_pipeline(ctx, shader, params, wants_screen_texture, uniforms, textures))
     }
 
     pub(crate) fn clear(&mut self, ctx: &mut dyn miniquad::RenderingBackend, color: Color) {
@@ -730,28 +693,16 @@ impl QuadGl {
 
             ctx.buffer_update(
                 bindings.vertex_buffers[0],
-                BufferSource::slice(
-                    &self.batch_vertex_buffer
-                        [dc.vertices_start..(dc.vertices_start + dc.vertices_count)],
-                ),
+                BufferSource::slice(&self.batch_vertex_buffer[dc.vertices_start..(dc.vertices_start + dc.vertices_count)]),
             );
             ctx.buffer_update(
                 bindings.index_buffer,
-                BufferSource::slice(
-                    &self.batch_index_buffer
-                        [dc.indices_start..(dc.indices_start + dc.indices_count)],
-                ),
+                BufferSource::slice(&self.batch_index_buffer[dc.indices_start..(dc.indices_start + dc.indices_count)]),
             );
 
             bindings.images[0] = dc.texture.unwrap_or(white_texture);
-            bindings.images[1] = self
-                .state
-                .snapshotter
-                .screen_texture
-                .unwrap_or(white_texture);
-            bindings
-                .images
-                .resize(2 + pipeline.textures.len(), white_texture);
+            bindings.images[1] = self.state.snapshotter.screen_texture.unwrap_or(white_texture);
+            bindings.images.resize(2 + pipeline.textures.len(), white_texture);
 
             for (pos, name) in pipeline.textures.iter().enumerate() {
                 if let Some(texture) = pipeline.textures_data.get(name).copied() {
@@ -780,10 +731,7 @@ impl QuadGl {
             pipeline.set_uniform("Projection", projection);
             pipeline.set_uniform("Model", dc.model);
             pipeline.set_uniform("_Time", time);
-            ctx.apply_uniforms_from_bytes(
-                pipeline.uniforms_data.as_ptr(),
-                pipeline.uniforms_data.len(),
-            );
+            ctx.apply_uniforms_from_bytes(pipeline.uniforms_data.as_ptr(), pipeline.uniforms_data.len());
             ctx.draw(0, dc.indices_count as i32, 1);
             ctx.end_render_pass();
 
@@ -844,12 +792,9 @@ impl QuadGl {
     }
 
     pub fn get_viewport(&self) -> (i32, i32, i32, i32) {
-        self.state.viewport.unwrap_or((
-            0,
-            0,
-            crate::window::screen_width() as _,
-            crate::window::screen_height() as _,
-        ))
+        self.state
+            .viewport
+            .unwrap_or((0, 0, crate::window::screen_width() as _, crate::window::screen_height() as _))
     }
 
     pub fn push_model_matrix(&mut self, matrix: glam::Mat4) {
@@ -883,10 +828,10 @@ impl QuadGl {
         let vertices = &vertices[0..self.max_vertices.min(vertices.len())];
         let indices = &indices[0..self.max_indices.min(indices.len())];
 
-        let pip = self.state.pipeline.unwrap_or(
-            self.pipelines
-                .get(self.state.draw_mode, self.state.depth_test_enable),
-        );
+        let pip = self
+            .state
+            .pipeline
+            .unwrap_or(self.pipelines.get(self.state.draw_mode, self.state.depth_test_enable));
 
         let previous_dc_ix = if self.draw_calls_count == 0 {
             None
@@ -909,12 +854,7 @@ impl QuadGl {
                 || self.state.break_batching
         }) {
             let uniforms = self.state.pipeline.map_or(None, |pipeline| {
-                Some(
-                    self.pipelines
-                        .get_quad_pipeline_mut(pipeline)
-                        .uniforms_data
-                        .clone(),
-                )
+                Some(self.pipelines.get_quad_pipeline_mut(pipeline).uniforms_data.clone())
             });
 
             if self.draw_calls_count >= self.draw_calls.len() {
@@ -962,48 +902,27 @@ impl QuadGl {
     pub fn set_uniform<T>(&mut self, pipeline: GlPipeline, name: &str, uniform: T) {
         self.state.break_batching = true;
 
-        self.pipelines
-            .get_quad_pipeline_mut(pipeline)
-            .set_uniform(name, uniform);
+        self.pipelines.get_quad_pipeline_mut(pipeline).set_uniform(name, uniform);
     }
-    pub fn set_uniform_array<T: ToBytes>(
-        &mut self,
-        pipeline: GlPipeline,
-        name: &str,
-        uniform: &[T],
-    ) {
+    pub fn set_uniform_array<T: ToBytes>(&mut self, pipeline: GlPipeline, name: &str, uniform: &[T]) {
         self.state.break_batching = true;
 
-        self.pipelines
-            .get_quad_pipeline_mut(pipeline)
-            .set_uniform_array(name, uniform);
+        self.pipelines.get_quad_pipeline_mut(pipeline).set_uniform_array(name, uniform);
     }
 
     pub fn set_texture(&mut self, pipeline: GlPipeline, name: &str, texture: Texture2D) {
         let pipeline = self.pipelines.get_quad_pipeline_mut(pipeline);
-        pipeline
-            .textures
-            .iter()
-            .find(|x| *x == name)
-            .unwrap_or_else(|| {
-                panic!(
-                    "can't find texture with name '{}', there is only this names: {:?}",
-                    name, pipeline.textures
-                )
-            });
+        pipeline.textures.iter().find(|x| *x == name).unwrap_or_else(|| {
+            panic!(
+                "can't find texture with name '{}', there is only this names: {:?}",
+                name, pipeline.textures
+            )
+        });
         let quad_texture = texture.raw_miniquad_id();
-        *pipeline
-            .textures_data
-            .entry(name.to_owned())
-            .or_insert(quad_texture) = quad_texture;
+        *pipeline.textures_data.entry(name.to_owned()).or_insert(quad_texture) = quad_texture;
     }
 
-    pub(crate) fn update_drawcall_capacity(
-        &mut self,
-        ctx: &mut dyn miniquad::RenderingBackend,
-        max_vertices: usize,
-        max_indices: usize,
-    ) {
+    pub(crate) fn update_drawcall_capacity(&mut self, ctx: &mut dyn miniquad::RenderingBackend, max_vertices: usize, max_indices: usize) {
         self.max_vertices = max_vertices;
         self.max_indices = max_indices;
         self.draw_calls_count = 0;
@@ -1119,10 +1038,7 @@ mod shader {
         ShaderMeta {
             images: vec!["Texture".to_string(), "_ScreenTexture".to_string()],
             uniforms: UniformBlockLayout {
-                uniforms: uniforms()
-                    .into_iter()
-                    .map(|(name, kind)| UniformDesc::new(name, kind))
-                    .collect(),
+                uniforms: uniforms().into_iter().map(|(name, kind)| UniformDesc::new(name, kind)).collect(),
             },
         }
     }

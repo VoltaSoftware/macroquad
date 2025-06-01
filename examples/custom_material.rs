@@ -181,15 +181,10 @@ async fn main() {
                 vertex: VERTEX,
                 fragment: FRAGMENT_WITH_ARRAY,
             },
-            Backend::Metal => ShaderSource::Msl {
-                program: METAL_WITH_ARRAY,
-            },
+            Backend::Metal => ShaderSource::Msl { program: METAL_WITH_ARRAY },
         },
         MaterialParams {
-            uniforms: vec![UniformDesc::array(
-                UniformDesc::new("test_color", UniformType::Float4),
-                10,
-            )],
+            uniforms: vec![UniformDesc::array(UniformDesc::new("test_color", UniformType::Float4), 10)],
             pipeline_params,
             ..Default::default()
         },

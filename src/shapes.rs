@@ -66,23 +66,14 @@ pub fn draw_rectangle_lines(x: f32, y: f32, w: f32, h: f32, thickness: f32, colo
         Vertex::new(x + w - t, y + h - t, 0., 0.0, 0.0, color),
         Vertex::new(x + t    , y + h - t, 0., 0.0, 0.0, color),
     ];
-    let indices: [u16; 24] = [
-        0, 1, 4, 1, 4, 5, 1, 5, 6, 1, 2, 6, 3, 7, 2, 2, 7, 6, 0, 4, 3, 3, 4, 7,
-    ];
+    let indices: [u16; 24] = [0, 1, 4, 1, 4, 5, 1, 5, 6, 1, 2, 6, 3, 7, 2, 2, 7, 6, 0, 4, 3, 3, 4, 7];
 
     context.gl.texture(None);
     context.gl.draw_mode(DrawMode::Triangles);
     context.gl.geometry(&vertices, &indices);
 }
 
-pub fn draw_rectangle_lines_ex(
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-    thickness: f32,
-    params: DrawRectangleParams,
-) {
+pub fn draw_rectangle_lines_ex(x: f32, y: f32, w: f32, h: f32, thickness: f32, params: DrawRectangleParams) {
     let context = get_context();
     let tx = thickness / w;
     let ty = thickness / h;
@@ -190,15 +181,7 @@ pub fn draw_rectangle_ex(x: f32, y: f32, w: f32, h: f32, params: DrawRectanglePa
 /// Draws an outlined solid hexagon centered at `[x, y]` with a radius `size`, outline thickness
 /// defined by `border`, orientation defined by `vertical` (when `true`, the hexagon points along
 /// the `y` axis), and colors for outline given by `border_color` and fill by `fill_color`.
-pub fn draw_hexagon(
-    x: f32,
-    y: f32,
-    size: f32,
-    border: f32,
-    vertical: bool,
-    border_color: Color,
-    fill_color: Color,
-) {
+pub fn draw_hexagon(x: f32, y: f32, size: f32, border: f32, vertical: bool, border_color: Color, fill_color: Color) {
     let rotation = if vertical { 90. } else { 0. };
     draw_poly(x, y, 6, size, rotation, fill_color);
     if border > 0. {
@@ -236,15 +219,7 @@ pub fn draw_poly(x: f32, y: f32, sides: u8, radius: f32, rotation: f32, color: C
 
 /// Draws a regular polygon outline centered at `[x, y]` with a given number of `sides`, `radius`,
 /// clockwise `rotation` (in degrees), line `thickness`, and `color`.
-pub fn draw_poly_lines(
-    x: f32,
-    y: f32,
-    sides: u8,
-    radius: f32,
-    rotation: f32,
-    thickness: f32,
-    color: Color,
-) {
+pub fn draw_poly_lines(x: f32, y: f32, sides: u8, radius: f32, rotation: f32, thickness: f32, color: Color) {
     draw_arc(x, y, sides, radius, rotation, thickness, 360.0, color);
 }
 
@@ -301,15 +276,7 @@ pub fn draw_ellipse(x: f32, y: f32, w: f32, h: f32, rotation: f32, color: Color)
 
 /// Draws an ellipse outline centered at `[x, y]` with a given size `[w, h]`,
 /// clockwise `rotation` (in degrees), line `thickness` and `color`.
-pub fn draw_ellipse_lines(
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
-    rotation: f32,
-    thickness: f32,
-    color: Color,
-) {
+pub fn draw_ellipse_lines(x: f32, y: f32, w: f32, h: f32, rotation: f32, thickness: f32, color: Color) {
     let sides = 20;
 
     let rot = rotation.to_radians();
@@ -371,22 +338,11 @@ pub fn draw_line(x1: f32, y1: f32, x2: f32, y2: f32, thickness: f32, color: Colo
 
 /// Draw arc from `rotation`(in degrees) to `arc + rotation` (`arc` in degrees),
 /// centered at `[x, y]` with a given number of `sides`, `radius`, line `thickness`, and `color`.
-pub fn draw_arc(
-    x: f32,
-    y: f32,
-    sides: u8,
-    radius: f32,
-    rotation: f32,
-    thickness: f32,
-    arc: f32,
-    color: Color,
-) {
+pub fn draw_arc(x: f32, y: f32, sides: u8, radius: f32, rotation: f32, thickness: f32, arc: f32, color: Color) {
     let rot = rotation.to_radians();
     let part = arc.to_radians();
 
-    let sides = (sides as f32 * part / std::f32::consts::TAU)
-        .ceil()
-        .max(1.0);
+    let sides = (sides as f32 * part / std::f32::consts::TAU).ceil().max(1.0);
     let span = part / sides;
     let sides = sides as usize;
 

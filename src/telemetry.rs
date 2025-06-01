@@ -37,11 +37,7 @@ impl Zone {
             name: self.name.clone(),
             start_time: self.start_time,
             duration: self.duration,
-            children: self
-                .children
-                .iter()
-                .map(|zone| zone.clone(self as *const _ as *mut _))
-                .collect(),
+            children: self.children.iter().map(|zone| zone.clone(self as *const _ as *mut _)).collect(),
             parent,
         }
     }
@@ -160,11 +156,7 @@ impl Frame {
 
         Some(Frame {
             full_frame_time: self.full_frame_time,
-            zones: self
-                .zones
-                .iter()
-                .map(|zone| zone.clone(std::ptr::null_mut()))
-                .collect(),
+            zones: self.zones.iter().map(|zone| zone.clone(std::ptr::null_mut())).collect(),
             active_zone: std::ptr::null_mut(),
         })
     }
@@ -203,21 +195,15 @@ struct Profiler {
 
 impl Profiler {
     fn begin_gpu_query(&mut self, name: &str) {
-        assert!(
-            self.active_query.is_none(),
-            "Only one active query is allowed by OpenGL"
-        );
+        assert!(self.active_query.is_none(), "Only one active query is allowed by OpenGL");
 
         let name = name.to_string();
-        let query = self
-            .queries
-            .entry(name.clone())
-            .or_insert_with(|| GpuQuery {
-                query: miniquad::graphics::ElapsedQuery::new(),
-                in_progress: false,
-                value: 0,
-                force_resume: false,
-            });
+        let query = self.queries.entry(name.clone()).or_insert_with(|| GpuQuery {
+            query: miniquad::graphics::ElapsedQuery::new(),
+            in_progress: false,
+            value: 0,
+            force_resume: false,
+        });
         self.active_query = Some(name);
         if query.force_resume {
             query.in_progress = true;
@@ -226,10 +212,7 @@ impl Profiler {
     }
 
     fn end_gpu_query(&mut self) {
-        let name = self
-            .active_query
-            .take()
-            .expect("End query without begin query");
+        let name = self.active_query.take().expect("End query without begin query");
         let query = self.queries.get_mut(&name).unwrap();
         if query.in_progress {
             query.force_resume = false;
@@ -259,10 +242,7 @@ impl Profiler {
     }
 
     fn end_zone(&mut self) {
-        assert!(
-            self.frame.active_zone.is_null() == false,
-            "end_zone called without begin_zone"
-        );
+        assert!(self.frame.active_zone.is_null() == false, "end_zone called without begin_zone");
 
         let start_time = unsafe { (&mut *self.frame.active_zone).start_time };
         let duration = get_time() - start_time;
@@ -309,11 +289,7 @@ impl<'a> LogTimeGuard<'a> {
 
 impl<'a> Drop for LogTimeGuard<'a> {
     fn drop(&mut self) {
-        log_string(&format!(
-            "Time query: {}, {:.1}s",
-            self.name,
-            get_time() - self.start_time
-        ));
+        log_string(&format!("Time query: {}, {:.1}s", self.name, get_time() - self.start_time));
     }
 }
 
@@ -348,11 +324,7 @@ pub struct DrawCallTelemetry {
     pub texture: miniquad::TextureId,
 }
 
-pub(crate) fn track_drawcall(
-    pipeline: &miniquad::Pipeline,
-    bindings: &miniquad::Bindings,
-    indices_count: usize,
-) {
+pub(crate) fn track_drawcall(pipeline: &miniquad::Pipeline, bindings: &miniquad::Bindings, indices_count: usize) {
     let texture = get_quad_context().new_render_texture(miniquad::TextureParams {
         width: 128,
         height: 128,
@@ -366,10 +338,7 @@ pub(crate) fn track_drawcall(
     get_quad_context().draw(0, indices_count as _, 1);
     get_quad_context().end_render_pass();
 
-    get_profiler().drawcalls.push(DrawCallTelemetry {
-        indices_count,
-        texture,
-    });
+    get_profiler().drawcalls.push(DrawCallTelemetry { indices_count, texture });
 }
 
 pub fn textures_count() -> usize {

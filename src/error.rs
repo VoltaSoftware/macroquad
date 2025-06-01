@@ -1,10 +1,7 @@
 #[derive(Debug)]
 pub enum Error {
     FontError(&'static str),
-    FileError {
-        kind: miniquad::fs::Error,
-        path: String,
-    },
+    FileError { kind: miniquad::fs::Error, path: String },
     ShaderError(miniquad::ShaderError),
     PngError(png::DecodingError),
     UnknownError(&'static str),

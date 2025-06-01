@@ -24,11 +24,7 @@ async fn main() {
 
     let mut static_colliders = vec![];
     for (_x, _y, tile) in tiled_map.tiles("main layer", None) {
-        static_colliders.push(if tile.is_some() {
-            Tile::Solid
-        } else {
-            Tile::Empty
-        });
+        static_colliders.push(if tile.is_some() { Tile::Solid } else { Tile::Empty });
     }
 
     let mut world = World::new();
@@ -56,11 +52,7 @@ async fn main() {
         // draw platform
         {
             let pos = world.solid_pos(platform.collider);
-            tiled_map.spr_ex(
-                "tileset",
-                Rect::new(6.0 * 8.0, 0.0, 32.0, 8.0),
-                Rect::new(pos.x, pos.y, 32.0, 8.0),
-            )
+            tiled_map.spr_ex("tileset", Rect::new(6.0 * 8.0, 0.0, 32.0, 8.0), Rect::new(pos.x, pos.y, 32.0, 8.0))
         }
 
         // draw player
@@ -72,11 +64,7 @@ async fn main() {
             if player.speed.x >= 0.0 {
                 tiled_map.spr("tileset", PLAYER_SPRITE, Rect::new(pos.x, pos.y, 8.0, 8.0));
             } else {
-                tiled_map.spr(
-                    "tileset",
-                    PLAYER_SPRITE,
-                    Rect::new(pos.x + 8.0, pos.y, -8.0, 8.0),
-                );
+                tiled_map.spr("tileset", PLAYER_SPRITE, Rect::new(pos.x + 8.0, pos.y, -8.0, 8.0));
             }
         }
 

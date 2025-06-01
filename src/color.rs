@@ -23,26 +23,15 @@ pub struct Color {
 #[macro_export]
 macro_rules! color_u8 {
     ($r:expr, $g:expr, $b:expr, $a:expr) => {
-        Color::new(
-            $r as f32 / 255.,
-            $g as f32 / 255.,
-            $b as f32 / 255.,
-            $a as f32 / 255.,
-        )
+        Color::new($r as f32 / 255., $g as f32 / 255., $b as f32 / 255., $a as f32 / 255.)
     };
 }
 
 #[test]
 fn color_from_bytes() {
     assert_eq!(Color::new(1.0, 0.0, 0.0, 1.0), color_u8!(255, 0, 0, 255));
-    assert_eq!(
-        Color::new(1.0, 0.5, 0.0, 1.0),
-        color_u8!(255, 127.5, 0, 255)
-    );
-    assert_eq!(
-        Color::new(0.0, 1.0, 0.5, 1.0),
-        color_u8!(0, 255, 127.5, 255)
-    );
+    assert_eq!(Color::new(1.0, 0.5, 0.0, 1.0), color_u8!(255, 127.5, 0, 255));
+    assert_eq!(Color::new(0.0, 1.0, 0.5, 1.0), color_u8!(0, 255, 127.5, 255));
 }
 
 impl From<Color> for [u8; 4] {
@@ -103,12 +92,7 @@ impl Color {
 
     /// Build a color from 4 components between 0 and 255.
     pub const fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Color {
-        Color::new(
-            r as f32 / 255.,
-            g as f32 / 255.,
-            b as f32 / 255.,
-            a as f32 / 255.,
-        )
+        Color::new(r as f32 / 255., g as f32 / 255., b as f32 / 255., a as f32 / 255.)
     }
 
     /// Build a color from a hexadecimal u32.
@@ -241,11 +225,7 @@ pub fn rgb_to_hsl(color: Color) -> (f32, f32, f32) {
     }
 
     // it's not gray
-    let s = if l < 0.5 {
-        delta / (max + min)
-    } else {
-        delta / (2.0 - max - min)
-    };
+    let s = if l < 0.5 { delta / (max + min) } else { delta / (2.0 - max - min) };
 
     // Hue
     let r2 = (((max - r) / 6.0) + (delta / 2.0)) / delta;

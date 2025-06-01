@@ -34,9 +34,7 @@ impl Material {
     }
 
     pub fn set_uniform_array<T: ToBytes>(&self, name: &str, uniform: &[T]) {
-        get_context()
-            .gl
-            .set_uniform_array(self.pipeline.0, name, uniform);
+        get_context().gl.set_uniform_array(self.pipeline.0, name, uniform);
     }
 
     pub fn set_texture(&self, name: &str, texture: Texture2D) {
@@ -119,10 +117,7 @@ pub struct MaterialParams {
 /// ) {...}
 /// ```
 ///
-pub fn load_material(
-    shader: crate::ShaderSource,
-    params: MaterialParams,
-) -> Result<Material, Error> {
+pub fn load_material(shader: crate::ShaderSource, params: MaterialParams) -> Result<Material, Error> {
     let context = &mut get_context();
 
     let pipeline = context.gl.make_pipeline(
@@ -202,24 +197,16 @@ pub mod shaders {
             let filename_start_ix = i;
             find(&res, &mut i, "\"");
             let filename_end_ix = i;
-            let filename = res[filename_start_ix..filename_end_ix]
-                .iter()
-                .cloned()
-                .collect::<String>();
+            let filename = res[filename_start_ix..filename_end_ix].iter().cloned().collect::<String>();
 
             let include_content = config
                 .includes
                 .iter()
                 .find(|(name, _)| name == &filename)
-                .expect(&format!(
-                    "Include file {filename} in not on \"includes\" list"
-                ));
+                .expect(&format!("Include file {filename} in not on \"includes\" list"));
 
             let _ = res
-                .splice(
-                    directive_start_ix..filename_end_ix + 1,
-                    include_content.1.chars(),
-                )
+                .splice(directive_start_ix..filename_end_ix + 1, include_content.1.chars())
                 .collect::<Vec<_>>();
         }
 

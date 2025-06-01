@@ -58,11 +58,7 @@ async fn main() {
                 } else {
                     snake.body.pop_back();
                 }
-                if snake.head.0 < 0
-                    || snake.head.1 < 0
-                    || snake.head.0 >= SQUARES
-                    || snake.head.1 >= SQUARES
-                {
+                if snake.head.0 < 0 || snake.head.1 < 0 || snake.head.0 >= SQUARES || snake.head.1 >= SQUARES {
                     game_over = true;
                 }
                 for (x, y) in &snake.body {

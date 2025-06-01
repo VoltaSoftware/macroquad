@@ -15,9 +15,7 @@ pub struct DrawCanvas<'a> {
 impl<'a> DrawCanvas<'a> {
     pub fn cursor(&self) -> Vec2 {
         let cursor = &self.context.window.cursor;
-        Vec2::new(cursor.x, cursor.y)
-            + Vec2::new(cursor.area.x, cursor.area.y)
-            + cursor.scroll.scroll
+        Vec2::new(cursor.x, cursor.y) + Vec2::new(cursor.area.x, cursor.area.y) + cursor.scroll.scroll
     }
 
     pub fn request_space(&mut self, space: Vec2) -> Vec2 {

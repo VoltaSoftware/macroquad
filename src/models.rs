@@ -73,25 +73,11 @@ pub fn draw_line_3d(start: Vec3, end: Vec3, color: Color) {
 
 /// Draw a grid centered at (0, 0, 0)
 pub fn draw_grid(slices: u32, spacing: f32, axes_color: Color, other_color: Color) {
-    draw_grid_ex(
-        slices,
-        spacing,
-        axes_color,
-        other_color,
-        vec3(0., 0., 0.),
-        Quat::IDENTITY,
-    );
+    draw_grid_ex(slices, spacing, axes_color, other_color, vec3(0., 0., 0.), Quat::IDENTITY);
 }
 
 /// Draw a rotated grid centered at a specified point
-pub fn draw_grid_ex(
-    slices: u32,
-    spacing: f32,
-    axes_color: Color,
-    other_color: Color,
-    center: Vec3,
-    rotation: Quat,
-) {
+pub fn draw_grid_ex(slices: u32, spacing: f32, axes_color: Color, other_color: Color, center: Vec3, rotation: Quat) {
     let half_slices = (slices as i32) / 2;
     for i in -half_slices..half_slices + 1 {
         let color = if i == 0 { axes_color } else { other_color };
@@ -99,20 +85,12 @@ pub fn draw_grid_ex(
         let start = vec3(i as f32 * spacing, 0., -half_slices as f32 * spacing);
         let end = vec3(i as f32 * spacing, 0., half_slices as f32 * spacing);
 
-        draw_line_3d(
-            rotation.mul_vec3(start) + center,
-            rotation.mul_vec3(end) + center,
-            color,
-        );
+        draw_line_3d(rotation.mul_vec3(start) + center, rotation.mul_vec3(end) + center, color);
 
         let start = vec3(-half_slices as f32 * spacing, 0., i as f32 * spacing);
         let end = vec3(half_slices as f32 * spacing, 0., i as f32 * spacing);
 
-        draw_line_3d(
-            rotation.mul_vec3(start) + center,
-            rotation.mul_vec3(end) + center,
-            color,
-        );
+        draw_line_3d(rotation.mul_vec3(start) + center, rotation.mul_vec3(end) + center, color);
     }
 }
 
@@ -148,13 +126,7 @@ pub fn draw_plane(center: Vec3, size: Vec2, texture: Option<&Texture2D>, color: 
 /// # use macroquad::prelude::*;
 /// draw_affine_parallelogram(Vec3::ZERO, 3. * Vec3::X, 5. * Vec3::Z, None, RED);
 /// ```
-pub fn draw_affine_parallelogram(
-    offset: Vec3,
-    e1: Vec3,
-    e2: Vec3,
-    texture: Option<&Texture2D>,
-    color: Color,
-) {
+pub fn draw_affine_parallelogram(offset: Vec3, e1: Vec3, e2: Vec3, texture: Option<&Texture2D>, color: Color) {
     let v1 = Vertex::new2(offset, vec2(0., 0.), color);
     let v2 = Vertex::new2(offset + e1, vec2(0., 1.), color);
     let v3 = Vertex::new2(offset + e1 + e2, vec2(1., 1.), color);
@@ -193,14 +165,7 @@ pub fn draw_affine_parallelogram(
 /// # use macroquad::prelude::*;
 /// draw_affine_parallelepiped(Vec3::ZERO, 3. * Vec3::X, 2. * Vec3::Y, 5. * Vec3::Z, None, RED);
 /// ```
-pub fn draw_affine_parallelepiped(
-    offset: Vec3,
-    e1: Vec3,
-    e2: Vec3,
-    e3: Vec3,
-    texture: Option<&Texture2D>,
-    color: Color,
-) {
+pub fn draw_affine_parallelepiped(offset: Vec3, e1: Vec3, e2: Vec3, e3: Vec3, texture: Option<&Texture2D>, color: Color) {
     draw_affine_parallelogram(offset, e1, e2, texture, color);
     draw_affine_parallelogram(offset, e1, e3, texture, color);
     draw_affine_parallelogram(offset, e2, e3, texture, color);
@@ -455,13 +420,7 @@ pub fn draw_sphere_wires(center: Vec3, radius: f32, texture: Option<&Texture2D>,
     draw_sphere_ex(center, radius, texture, color, params);
 }
 
-pub fn draw_sphere_ex(
-    center: Vec3,
-    radius: f32,
-    texture: Option<&Texture2D>,
-    color: Color,
-    params: DrawSphereParams,
-) {
+pub fn draw_sphere_ex(center: Vec3, radius: f32, texture: Option<&Texture2D>, color: Color, params: DrawSphereParams) {
     let context = get_context();
 
     let rings = params.rings;
@@ -557,46 +516,16 @@ impl Default for DrawCylinderParams {
     }
 }
 
-pub fn draw_cylinder(
-    position: Vec3,
-    radius_top: f32,
-    radius_bottom: f32,
-    height: f32,
-    texture: Option<&Texture2D>,
-    color: Color,
-) {
-    draw_cylinder_ex(
-        position,
-        radius_top,
-        radius_bottom,
-        height,
-        texture,
-        color,
-        Default::default(),
-    );
+pub fn draw_cylinder(position: Vec3, radius_top: f32, radius_bottom: f32, height: f32, texture: Option<&Texture2D>, color: Color) {
+    draw_cylinder_ex(position, radius_top, radius_bottom, height, texture, color, Default::default());
 }
 
-pub fn draw_cylinder_wires(
-    position: Vec3,
-    radius_top: f32,
-    radius_bottom: f32,
-    height: f32,
-    texture: Option<&Texture2D>,
-    color: Color,
-) {
+pub fn draw_cylinder_wires(position: Vec3, radius_top: f32, radius_bottom: f32, height: f32, texture: Option<&Texture2D>, color: Color) {
     let params = DrawCylinderParams {
         draw_mode: DrawMode::Lines,
         ..Default::default()
     };
-    draw_cylinder_ex(
-        position,
-        radius_top,
-        radius_bottom,
-        height,
-        texture,
-        color,
-        params,
-    );
+    draw_cylinder_ex(position, radius_top, radius_bottom, height, texture, color, params);
 }
 
 //Note: can also be used to draw a cone by setting radius_top or radius_bottom to 0
@@ -622,11 +551,7 @@ pub fn draw_cylinder_ex(
     for i in 0..sides + 1 {
         let i = i as f32;
         //bottom left
-        let v1 = vec3(
-            (i * angle_step).sin() * radius_bottom,
-            0.0,
-            (i * angle_step).cos() * radius_bottom,
-        );
+        let v1 = vec3((i * angle_step).sin() * radius_bottom, 0.0, (i * angle_step).cos() * radius_bottom);
         //bottom right
         let v2 = vec3(
             ((i + 1.0) * angle_step).sin() * radius_bottom,
@@ -650,17 +575,9 @@ pub fn draw_cylinder_ex(
         );
 
         //top left
-        let v1 = vec3(
-            (i * angle_step).sin() * radius_top,
-            height,
-            (i * angle_step).cos() * radius_top,
-        );
+        let v1 = vec3((i * angle_step).sin() * radius_top, height, (i * angle_step).cos() * radius_top);
         //bottom left
-        let v2 = vec3(
-            (i * angle_step).sin() * radius_bottom,
-            0.0,
-            (i * angle_step).cos() * radius_bottom,
-        );
+        let v2 = vec3((i * angle_step).sin() * radius_bottom, 0.0, (i * angle_step).cos() * radius_bottom);
         //top right
         let v3 = vec3(
             ((i + 1.0) * angle_step).sin() * radius_top,
@@ -682,11 +599,7 @@ pub fn draw_cylinder_ex(
     for i in 0..sides + 1 {
         let i = i as f32;
         let v1 = vec3(0.0, height, 0.0);
-        let v2 = vec3(
-            (i * angle_step).sin() * radius_top,
-            height,
-            (i * angle_step).cos() * radius_top,
-        );
+        let v2 = vec3((i * angle_step).sin() * radius_top, height, (i * angle_step).cos() * radius_top);
         let v3 = vec3(
             ((i + 1.0) * angle_step).sin() * radius_top,
             height,
@@ -707,11 +620,7 @@ pub fn draw_cylinder_ex(
     for i in 0..sides + 1 {
         let i = i as f32;
         let v1 = vec3(0.0, 0.0, 0.0);
-        let v2 = vec3(
-            (i * angle_step).sin() * radius_bottom,
-            0.0,
-            (i * angle_step).cos() * radius_bottom,
-        );
+        let v2 = vec3((i * angle_step).sin() * radius_bottom, 0.0, (i * angle_step).cos() * radius_bottom);
         let v3 = vec3(
             ((i + 1.0) * angle_step).sin() * radius_bottom,
             0.0,

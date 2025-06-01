@@ -42,17 +42,11 @@ impl<'a> InputText<'a> {
     }
 
     pub const fn size(self, size: Vec2) -> Self {
-        Self {
-            size: Some(size),
-            ..self
-        }
+        Self { size: Some(size), ..self }
     }
 
     pub const fn position(self, pos: Vec2) -> Self {
-        Self {
-            pos: Some(pos),
-            ..self
-        }
+        Self { pos: Some(pos), ..self }
     }
 
     pub const fn password(self, password: bool) -> Self {
@@ -64,10 +58,7 @@ impl<'a> InputText<'a> {
     }
 
     pub const fn filter_numbers(self) -> Self {
-        Self {
-            numbers: true,
-            ..self
-        }
+        Self { numbers: true, ..self }
     }
 
     pub const fn margin(self, margin: Vec2) -> Self {
@@ -80,10 +71,10 @@ impl<'a> InputText<'a> {
     pub fn ui(self, ui: &mut Ui, data: &mut String) {
         let context = ui.get_active_window_context();
 
-        let label_size = context.window.painter.content_with_margins_size(
-            &context.style.editbox_style,
-            &UiContent::Label((&*data).into()),
-        );
+        let label_size = context
+            .window
+            .painter
+            .content_with_margins_size(&context.style.editbox_style, &UiContent::Label((&*data).into()));
 
         let size = self.size.unwrap_or(vec2(
             context.window.cursor.area.w - context.style.margin * 2. - context.window.cursor.ident,
@@ -95,11 +86,7 @@ impl<'a> InputText<'a> {
             .map(|pos| pos + context.window.cursor.fit(size, Layout::Vertical))
             .unwrap_or_else(|| context.window.cursor.fit(size, Layout::Vertical));
 
-        let editbox_area_w = if self.label.is_empty() {
-            size.x
-        } else {
-            size.x * self.ratio - 15.
-        };
+        let editbox_area_w = if self.label.is_empty() { size.x } else { size.x * self.ratio - 15. };
 
         let mut editbox = Editbox::new(self.id, Vec2::new(editbox_area_w, size.y))
             .password(self.password)
@@ -111,9 +98,7 @@ impl<'a> InputText<'a> {
         }
 
         if self.numbers {
-            editbox = editbox.filter(&|character| {
-                character.is_digit(10) || character == '.' || character == '-'
-            });
+            editbox = editbox.filter(&|character| character.is_digit(10) || character == '.' || character == '-');
         }
         editbox.ui(ui, data);
 
@@ -139,9 +124,6 @@ impl Ui {
     }
 
     pub fn input_password(&mut self, id: Id, label: &str, data: &mut String) {
-        InputText::new(id)
-            .label(label)
-            .password(true)
-            .ui(self, data);
+        InputText::new(id).label(label).password(true).ui(self, data);
     }
 }

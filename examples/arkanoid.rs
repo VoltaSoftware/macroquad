@@ -49,12 +49,7 @@ async fn main() {
                 font_scale_aspect: font_aspect,
                 ..Default::default()
             };
-            draw_text_ex(
-                "Press space to start",
-                SCR_W / 2. - 5.,
-                SCR_H / 2.,
-                text_params,
-            );
+            draw_text_ex("Press space to start", SCR_W / 2. - 5., SCR_H / 2., text_params);
 
             ball_x = platform_x;
             ball_y = SCR_H - 0.5;
@@ -87,11 +82,7 @@ async fn main() {
                     let block_y = j as f32 * block_h + 0.05;
 
                     draw_rectangle(block_x, block_y, block_w - 0.1, block_h - 0.1, DARKBLUE);
-                    if ball_x >= block_x
-                        && ball_x < block_x + block_w
-                        && ball_y >= block_y
-                        && ball_y < block_y + block_h
-                    {
+                    if ball_x >= block_x && ball_x < block_x + block_w && ball_y >= block_y && ball_y < block_y + block_h {
                         dy *= -1.;
                         blocks[j][i] = false;
                     }

@@ -2,9 +2,7 @@ use macroquad::prelude::*;
 
 #[macroquad::main("Text")]
 async fn main() {
-    let font = load_ttf_font("./examples/DancingScriptRegular.ttf")
-        .await
-        .unwrap();
+    let font = load_ttf_font("./examples/DancingScriptRegular.ttf").await.unwrap();
 
     let mut angle = 0.0;
 

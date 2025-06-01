@@ -81,15 +81,10 @@ impl<'a> Slider<'a> {
             }
         }
 
-        let dragging = context
-            .storage_u32
-            .entry(hash!(self.id, "dragging"))
-            .or_insert(0);
+        let dragging = context.storage_u32.entry(hash!(self.id, "dragging")).or_insert(0);
 
         let slider_start_x = editbox_width + pos.x + margin;
-        let data_pos = (*data - self.range.start) / (self.range.end - self.range.start)
-            * slider_width
-            + slider_start_x;
+        let data_pos = (*data - self.range.start) / (self.range.end - self.range.start) * slider_width + slider_start_x;
 
         let bar_rect = Rect::new(data_pos - 4., pos.y, 8., 20.);
         let hovered = bar_rect.contains(context.input.mouse_position);
@@ -107,9 +102,7 @@ impl<'a> Slider<'a> {
         }
 
         if *dragging == 1 {
-            let mouse_position = ((context.input.mouse_position.x - slider_start_x) / slider_width)
-                .min(1.)
-                .max(0.);
+            let mouse_position = ((context.input.mouse_position.x - slider_start_x) / slider_width).min(1.).max(0.);
             let old_data = *data;
             *data = self.range.start + (self.range.end - self.range.start) * mouse_position;
 
@@ -124,10 +117,7 @@ impl<'a> Slider<'a> {
         // static horizontal line in the middle of the slider
         context.window.painter.draw_line(
             vec2(pos.x + editbox_width + margin, pos.y + size.y / 2.),
-            vec2(
-                pos.x + editbox_width + slider_width + margin,
-                pos.y + size.y / 2.,
-            ),
+            vec2(pos.x + editbox_width + slider_width + margin, pos.y + size.y / 2.),
             // TODO: introduce separate slider_style
             context.style.checkbox_style.color(ElementState {
                 focused: context.focused,
@@ -151,10 +141,7 @@ impl<'a> Slider<'a> {
 
         context.window.painter.draw_element_label(
             &context.style.label_style,
-            vec2(
-                pos.x + editbox_width + slider_width + margin * 2.,
-                pos.y + 2.,
-            ),
+            vec2(pos.x + editbox_width + slider_width + margin * 2., pos.y + 2.),
             self.label,
             ElementState {
                 focused: context.focused,

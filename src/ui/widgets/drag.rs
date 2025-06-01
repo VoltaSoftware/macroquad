@@ -5,10 +5,7 @@ use crate::{
 
 use std::any::Any;
 
-pub trait Num:
-    Copy + std::string::ToString + std::str::FromStr + Into<f64> + 'static + Default + std::fmt::Display
-{
-}
+pub trait Num: Copy + std::string::ToString + std::str::FromStr + Into<f64> + 'static + Default + std::fmt::Display {}
 
 #[derive(Clone, Copy)]
 struct DragState {
@@ -85,26 +82,18 @@ impl<'a> Drag<'a> {
         let state_hash = hash!(self.id, "input_float_state");
         let mut s: State = std::mem::take(context.storage_any.get_or_default(state_hash));
 
-        let label_size = context.window.painter.content_with_margins_size(
-            &context.style.label_style,
-            &UiContent::Label(self.label.into()),
-        );
+        let label_size = context
+            .window
+            .painter
+            .content_with_margins_size(&context.style.label_style, &UiContent::Label(self.label.into()));
         let size = vec2(
             context.window.cursor.area.w - context.style.margin * 2. - context.window.cursor.ident,
             label_size.y.max(22.),
         );
 
         let pos = context.window.cursor.fit(size, Layout::Vertical);
-        let editbox_area = Vec2::new(
-            if self.label.is_empty() {
-                size.x
-            } else {
-                size.x / 2.0
-            },
-            size.y,
-        );
-        let hovered = Rect::new(pos.x, pos.y, editbox_area.x, editbox_area.y)
-            .contains(context.input.mouse_position);
+        let editbox_area = Vec2::new(if self.label.is_empty() { size.x } else { size.x / 2.0 }, size.y);
+        let hovered = Rect::new(pos.x, pos.y, editbox_area.x, editbox_area.y).contains(context.input.mouse_position);
 
         // state transition between editbox and dragbox
         if s.in_editbox == false {
@@ -112,10 +101,7 @@ impl<'a> Drag<'a> {
                 s.in_editbox = true;
             }
         } else {
-            if context.input.escape
-                || context.input.enter
-                || (hovered == false && context.input.is_mouse_down())
-            {
+            if context.input.escape || context.input.enter || (hovered == false && context.input.is_mouse_down()) {
                 s.in_editbox = false;
             }
         }
@@ -130,10 +116,10 @@ impl<'a> Drag<'a> {
             // );
 
             let label = format!("{:.2}", (*data));
-            let value_size = context.window.painter.content_with_margins_size(
-                &context.style.label_style,
-                &UiContent::Label((&label).into()),
-            );
+            let value_size = context
+                .window
+                .painter
+                .content_with_margins_size(&context.style.label_style, &UiContent::Label((&label).into()));
 
             context.window.painter.draw_element_label(
                 &context.style.label_style,
@@ -155,8 +141,7 @@ impl<'a> Drag<'a> {
                         *context.input_focus = None;
                     }
                 } else {
-                    let mouse_delta =
-                        (context.input.mouse_position.x - drag.start_mouse) * self.step;
+                    let mouse_delta = (context.input.mouse_position.x - drag.start_mouse) * self.step;
 
                     if (data as &mut dyn Any).is::<f32>() {
                         let data = (data as &mut dyn Any).downcast_mut::<f32>().unwrap();
@@ -230,13 +215,7 @@ impl Num for u32 {}
 impl Num for f32 {}
 
 impl Ui {
-    pub fn drag<T: Num, T1: Into<Option<(T, T)>>>(
-        &mut self,
-        id: Id,
-        label: &str,
-        range: T1,
-        data: &mut T,
-    ) {
+    pub fn drag<T: Num, T1: Into<Option<(T, T)>>>(&mut self, id: Id, label: &str, range: T1, data: &mut T) {
         let range = range.into();
 
         Drag::new(id).label(label).range(range).ui(self, data);

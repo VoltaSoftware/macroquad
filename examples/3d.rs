@@ -25,12 +25,7 @@ async fn main() {
 
         draw_plane(vec3(-8., 0., -8.), vec2(5., 5.), Some(&ferris), WHITE);
 
-        draw_cube(
-            vec3(-5., 1., -2.),
-            vec3(2., 2., 2.),
-            Some(&rust_logo),
-            WHITE,
-        );
+        draw_cube(vec3(-5., 1., -2.), vec3(2., 2., 2.), Some(&rust_logo), WHITE);
         draw_cube(vec3(-5., 1., 2.), vec3(2., 2., 2.), Some(&ferris), WHITE);
         draw_cube(vec3(2., 0., -2.), vec3(0.4, 0.4, 0.4), None, BLACK);
 

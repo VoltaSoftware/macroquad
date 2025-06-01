@@ -93,12 +93,7 @@ pub struct AnimatedSprite {
 }
 
 impl AnimatedSprite {
-    pub fn new(
-        tile_width: u32,
-        tile_height: u32,
-        animations: &[Animation],
-        playing: bool,
-    ) -> AnimatedSprite {
+    pub fn new(tile_width: u32, tile_height: u32, animations: &[Animation], playing: bool) -> AnimatedSprite {
         AnimatedSprite {
             tile_width: tile_width as f32,
             tile_height: tile_height as f32,

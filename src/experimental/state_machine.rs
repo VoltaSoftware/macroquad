@@ -28,10 +28,7 @@ impl<T> State<T> {
         }
     }
 
-    pub fn coroutine(
-        self,
-        coroutine: impl FnMut(&mut scene::RefMut<T>) -> Coroutine + 'static,
-    ) -> Self {
+    pub fn coroutine(self, coroutine: impl FnMut(&mut scene::RefMut<T>) -> Coroutine + 'static) -> Self {
         State {
             coroutine: Some(Box::new(coroutine)),
             ..self
@@ -48,10 +45,7 @@ impl<T> State<T> {
 
 pub enum StateMachine<T: 'static> {
     Ready(StateMachineOwned<T>),
-    InUse {
-        next_state: Option<usize>,
-        current_state: usize,
-    },
+    InUse { next_state: Option<usize>, current_state: usize },
 }
 
 impl<T: scene::Node + 'static> StateMachine<T> {
@@ -97,9 +91,7 @@ impl<T: scene::Node + 'static> StateMachine<T> {
             StateMachine::Ready(state_machine) => {
                 state_machine.set_state(state);
             }
-            StateMachine::InUse {
-                ref mut next_state, ..
-            } => {
+            StateMachine::InUse { ref mut next_state, .. } => {
                 *next_state = Some(state);
             }
         }
@@ -108,9 +100,7 @@ impl<T: scene::Node + 'static> StateMachine<T> {
     pub const fn state(&self) -> usize {
         match self {
             StateMachine::Ready(state_machine) => state_machine.state(),
-            StateMachine::InUse {
-                ref current_state, ..
-            } => *current_state,
+            StateMachine::InUse { ref current_state, .. } => *current_state,
         }
     }
 
@@ -137,9 +127,7 @@ impl<T: scene::Node + 'static> StateMachine<T> {
 
     pub fn update<'a>(&mut self, t: &'a mut scene::RefMut<T>) {
         match self {
-            StateMachine::Ready(state_machine) => {
-                state_machine.update(t, crate::time::get_frame_time())
-            }
+            StateMachine::Ready(state_machine) => state_machine.update(t, crate::time::get_frame_time()),
             _ => panic!(),
         }
     }

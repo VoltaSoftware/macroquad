@@ -25,10 +25,11 @@ impl Scroll {
     }
 
     pub fn update(&mut self) {
-        self.rect.y =
-            self.rect.y.max(self.inner_rect_previous_frame.y).min(
-                self.inner_rect_previous_frame.h - self.rect.h + self.inner_rect_previous_frame.y,
-            );
+        self.rect.y = self
+            .rect
+            .y
+            .max(self.inner_rect_previous_frame.y)
+            .min(self.inner_rect_previous_frame.h - self.rect.h + self.inner_rect_previous_frame.y);
     }
 }
 
@@ -87,10 +88,7 @@ impl Cursor {
     }
 
     pub fn current_position(&self) -> Vec2 {
-        Vec2::new(self.x, self.y)
-            + Vec2::new(self.area.x, self.area.y)
-            + self.scroll.scroll
-            + Vec2::new(self.ident, 0.)
+        Vec2::new(self.x, self.y) + Vec2::new(self.area.x, self.area.y) + self.scroll.scroll + Vec2::new(self.ident, 0.)
     }
 
     pub fn fit(&mut self, size: Vec2, mut layout: Layout) -> Vec2 {
@@ -130,10 +128,7 @@ impl Cursor {
                 res = point;
             }
         }
-        self.scroll.inner_rect = self
-            .scroll
-            .inner_rect
-            .combine_with(Rect::new(res.x, res.y, size.x, size.y));
+        self.scroll.inner_rect = self.scroll.inner_rect.combine_with(Rect::new(res.x, res.y, size.x, size.y));
 
         res + Vec2::new(self.area.x, self.area.y) + self.scroll.scroll + Vec2::new(self.ident, 0.)
     }

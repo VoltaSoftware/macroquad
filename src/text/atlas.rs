@@ -43,11 +43,7 @@ impl Atlas {
     pub fn new(ctx: &mut dyn miniquad::RenderingBackend, filter: miniquad::FilterMode) -> Atlas {
         let image = Image::gen_image_color(512, 512, Color::new(0.0, 0.0, 0.0, 0.0));
         let texture = ctx.new_texture_from_rgba8(image.width, image.height, &image.bytes);
-        ctx.texture_set_filter(
-            texture,
-            miniquad::FilterMode::Nearest,
-            miniquad::MipmapFilterMode::None,
-        );
+        ctx.texture_set_filter(texture, miniquad::FilterMode::Nearest, miniquad::MipmapFilterMode::None);
 
         Atlas {
             image,
@@ -94,11 +90,7 @@ impl Atlas {
             if texture_width != self.image.width as _ || texture_height != self.image.height as _ {
                 ctx.delete_texture(self.texture);
 
-                self.texture = ctx.new_texture_from_rgba8(
-                    self.image.width,
-                    self.image.height,
-                    &self.image.bytes[..],
-                );
+                self.texture = ctx.new_texture_from_rgba8(self.image.width, self.image.height, &self.image.bytes[..]);
                 ctx.texture_set_filter(self.texture, self.filter, miniquad::MipmapFilterMode::None);
             }
 
@@ -157,8 +149,7 @@ impl Atlas {
             let new_width = self.image.width * 2;
             let new_height = self.image.height * 2;
 
-            self.image =
-                Image::gen_image_color(new_width, new_height, Color::new(0.0, 0.0, 0.0, 0.0));
+            self.image = Image::gen_image_color(new_width, new_height, Color::new(0.0, 0.0, 0.0, 0.0));
 
             // recache all previously cached symbols
             for (key, sprite) in sprites {
@@ -173,11 +164,8 @@ impl Atlas {
 
             for j in 0..height {
                 for i in 0..width {
-                    self.image.set_pixel(
-                        x as u32 + i as u32,
-                        y as u32 + j as u32,
-                        sprite.get_pixel(i as u32, j as u32),
-                    );
+                    self.image
+                        .set_pixel(x as u32 + i as u32, y as u32 + j as u32, sprite.get_pixel(i as u32, j as u32));
                 }
             }
 

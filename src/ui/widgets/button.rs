@@ -30,10 +30,7 @@ impl<'a> Button<'a> {
     }
 
     pub fn size(self, size: Vec2) -> Self {
-        Button {
-            size: Some(size),
-            ..self
-        }
+        Button { size: Some(size), ..self }
     }
 
     pub fn selected(self, selected: bool) -> Self {
@@ -103,11 +100,7 @@ impl<'a> Button<'a> {
 }
 
 impl Ui {
-    pub fn button<'a, P: Into<Option<Vec2>>, S: Into<UiContent<'a>>>(
-        &mut self,
-        position: P,
-        label: S,
-    ) -> bool {
+    pub fn button<'a, P: Into<Option<Vec2>>, S: Into<UiContent<'a>>>(&mut self, position: P, label: S) -> bool {
         Button::new(label).position(position).ui(self)
     }
 }

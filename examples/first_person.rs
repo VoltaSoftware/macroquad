@@ -24,12 +24,7 @@ async fn main() {
     let mut yaw: f32 = 1.18;
     let mut pitch: f32 = 0.0;
 
-    let mut front = vec3(
-        yaw.cos() * pitch.cos(),
-        pitch.sin(),
-        yaw.sin() * pitch.cos(),
-    )
-    .normalize();
+    let mut front = vec3(yaw.cos() * pitch.cos(), pitch.sin(), yaw.sin() * pitch.cos()).normalize();
     let mut right = front.cross(world_up).normalize();
     let mut up = right.cross(front).normalize();
 
@@ -77,12 +72,7 @@ async fn main() {
             pitch = if pitch > 1.5 { 1.5 } else { pitch };
             pitch = if pitch < -1.5 { -1.5 } else { pitch };
 
-            front = vec3(
-                yaw.cos() * pitch.cos(),
-                pitch.sin(),
-                yaw.sin() * pitch.cos(),
-            )
-            .normalize();
+            front = vec3(yaw.cos() * pitch.cos(), pitch.sin(), yaw.sin() * pitch.cos()).normalize();
 
             right = front.cross(world_up).normalize();
             up = right.cross(front).normalize();
@@ -106,11 +96,7 @@ async fn main() {
 
         draw_grid(20, 1., BLACK, GRAY);
 
-        draw_line_3d(
-            vec3(x, 0.0, x),
-            vec3(5.0, 5.0, 5.0),
-            Color::new(1.0, 1.0, 0.0, 1.0),
-        );
+        draw_line_3d(vec3(x, 0.0, x), vec3(5.0, 5.0, 5.0), Color::new(1.0, 1.0, 0.0, 1.0));
 
         draw_cube_wires(vec3(0., 1., -6.), vec3(2., 2., 2.), GREEN);
         draw_cube_wires(vec3(0., 1., 6.), vec3(2., 2., 2.), BLUE);

@@ -48,10 +48,7 @@ impl Window {
     }
 
     pub fn close_button(self, close_button: bool) -> Window {
-        Window {
-            close_button,
-            ..self
-        }
+        Window { close_button, ..self }
     }
 
     pub fn titlebar(self, titlebar: bool) -> Window {
@@ -65,14 +62,7 @@ impl Window {
     }
 
     pub fn begin(self, ui: &mut Ui) -> WindowToken {
-        let context = ui.begin_window(
-            self.id,
-            None,
-            self.position,
-            self.size,
-            self.titlebar,
-            self.movable,
-        );
+        let context = ui.begin_window(self.id, None, self.position, self.size, self.titlebar, self.movable);
 
         // TODO: this will make each new window focused(appeared on the top) always
         // consider adding some configuration to be able to spawn background windows

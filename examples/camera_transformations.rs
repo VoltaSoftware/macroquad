@@ -134,13 +134,7 @@ async fn main() {
             15.0,
             BLACK,
         );
-        draw_text(
-            format!("zoom (ctrl + mouse wheel) = {zoom:.2}").as_str(),
-            10.0,
-            40.0,
-            15.0,
-            BLACK,
-        );
+        draw_text(format!("zoom (ctrl + mouse wheel) = {zoom:.2}").as_str(), 10.0, 40.0, 15.0, BLACK);
         draw_text(
             format!("offset (arrow keys) = ({:+.2}, {:+.2})", offset.0, offset.1).as_str(),
             10.0,

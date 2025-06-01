@@ -8,10 +8,7 @@ impl Ui {
         let context = self.get_active_window_context();
 
         // hack: to move cursor to the beginning of next line
-        context
-            .window
-            .cursor
-            .fit(Vec2::new(0., 1.), Layout::Vertical);
+        context.window.cursor.fit(Vec2::new(0., 1.), Layout::Vertical);
 
         // let _size = Vec2::new(
         //     context.window.cursor.area.w - context.style.margin * 2. - context.window.cursor.ident,

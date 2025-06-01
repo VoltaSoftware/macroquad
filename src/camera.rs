@@ -93,11 +93,7 @@ impl Camera for Camera2D {
         //   3. Move by -target
         let mat_origin = Mat4::from_translation(vec3(-self.target.x, -self.target.y, 0.0));
         let mat_rotation = Mat4::from_axis_angle(vec3(0.0, 0.0, 1.0), self.rotation.to_radians());
-        let invert_y = if self.render_target.is_some() {
-            1.0
-        } else {
-            -1.0
-        };
+        let invert_y = if self.render_target.is_some() { 1.0 } else { -1.0 };
         let mat_scale = Mat4::from_scale(vec3(self.zoom.x, self.zoom.y * invert_y, 1.0));
         let mat_translation = Mat4::from_translation(vec3(self.offset.x, self.offset.y, 0.0));
 
@@ -150,10 +146,7 @@ impl Camera2D {
                 h: screen_height(),
             });
 
-        let point = vec2(
-            (point.x - dims.x) / dims.w * 2. - 1.,
-            1. - (point.y - dims.y) / dims.h * 2.,
-        );
+        let point = vec2((point.x - dims.x) / dims.w * 2. - 1., 1. - (point.y - dims.y) / dims.h * 2.);
         let inv_mat = self.matrix().inverse();
         let transform = inv_mat.transform_point3(vec3(point.x, point.y, 0.));
 
@@ -228,8 +221,7 @@ impl Camera for Camera3D {
 
         match self.projection {
             Projection::Perspective => {
-                Mat4::perspective_rh_gl(self.fovy, aspect, self.z_near, self.z_far)
-                    * Mat4::look_at_rh(self.position, self.target, self.up)
+                Mat4::perspective_rh_gl(self.fovy, aspect, self.z_near, self.z_far) * Mat4::look_at_rh(self.position, self.target, self.up)
             }
             Projection::Orthographics => {
                 let top = self.fovy / 2.0;
@@ -261,9 +253,7 @@ pub fn set_camera(camera: &dyn Camera) {
     // flush previous camera draw calls
     context.perform_render_passes();
 
-    context
-        .gl
-        .render_pass(camera.render_pass().map(|rt| rt.raw_miniquad_id()));
+    context.gl.render_pass(camera.render_pass().map(|rt| rt.raw_miniquad_id()));
 
     context.gl.viewport(camera.viewport());
     context.gl.depth_test(camera.depth_enabled());

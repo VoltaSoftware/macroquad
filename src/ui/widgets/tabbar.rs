@@ -42,12 +42,7 @@ impl<'a, 'b> Tabbar<'a, 'b> {
             .unwrap_or_else(|| context.storage_u32.entry(self.id).or_insert(0));
 
         for (n, label) in self.tabs.iter().enumerate() {
-            let rect = Rect::new(
-                pos.x + width * n as f32 + 1.,
-                pos.y,
-                width - 2.,
-                self.size.y,
-            );
+            let rect = Rect::new(pos.x + width * n as f32 + 1., pos.y, width - 2., self.size.y);
             let hovered = rect.contains(context.input.mouse_position);
             let selected = n as u32 == selected;
 

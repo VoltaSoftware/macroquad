@@ -51,10 +51,7 @@ impl Command for InsertString {
     fn apply(&self, text_cursor: &mut u32, text: &mut Vec<char>) {
         *text_cursor = self.cursor;
         if self.cursor <= text.len() as u32 {
-            text.splice(
-                self.cursor as usize..self.cursor as usize,
-                self.data.clone(),
-            );
+            text.splice(self.cursor as usize..self.cursor as usize, self.data.clone());
         }
         *text_cursor += self.data.len() as u32;
     }
@@ -209,9 +206,7 @@ impl EditboxState {
 
     pub fn find_line_end(&self, text: &Vec<char>) -> u32 {
         let mut cursor_tmp = self.cursor;
-        while cursor_tmp < text.len() as u32
-            && text.get(cursor_tmp as usize).copied().unwrap_or('x') != '\n'
-        {
+        while cursor_tmp < text.len() as u32 && text.get(cursor_tmp as usize).copied().unwrap_or('x') != '\n' {
             cursor_tmp += 1;
         }
 
@@ -219,11 +214,7 @@ impl EditboxState {
     }
 
     pub const fn word_delimiter(character: char) -> bool {
-        character == ' '
-            || character == '('
-            || character == ')'
-            || character == ';'
-            || character == '\"'
+        character == ' ' || character == '(' || character == ')' || character == ';' || character == '\"'
     }
 
     pub fn find_word_begin(&self, text: &Vec<char>, cursor: u32) -> u32 {
@@ -345,9 +336,7 @@ impl EditboxState {
         assert!(dx >= 0, "not implemented");
 
         for _ in 0..dx {
-            if text.get(self.cursor as usize).copied().unwrap_or('x') == '\n'
-                || self.cursor == text.len() as u32
-            {
+            if text.get(self.cursor as usize).copied().unwrap_or('x') == '\n' || self.cursor == text.len() as u32 {
                 break;
             }
             self.move_cursor(text, 1, shift);
@@ -385,8 +374,7 @@ impl EditboxState {
     pub fn click_down(&mut self, time: f32, text: &Vec<char>, cursor: u32) {
         self.current_click = cursor;
 
-        if self.last_click == self.current_click && time - self.last_click_time < DOUBLE_CLICK_TIME
-        {
+        if self.last_click == self.current_click && time - self.last_click_time < DOUBLE_CLICK_TIME {
             self.clicks_counter += 1;
             match self.clicks_counter % 3 {
                 0 => {
@@ -406,9 +394,7 @@ impl EditboxState {
         } else {
             self.clicks_counter = 0;
             if let ClickState::None | ClickState::Selected = self.click_state {
-                self.click_state = ClickState::SelectingChars {
-                    selection_begin: cursor,
-                };
+                self.click_state = ClickState::SelectingChars { selection_begin: cursor };
                 self.selection = Some((cursor, cursor));
             } else {
                 self.click_state = ClickState::None;
@@ -431,9 +417,7 @@ impl EditboxState {
             ClickState::SelectingChars { selection_begin } => {
                 self.selection = Some((selection_begin, cursor));
             }
-            ClickState::SelectingWords {
-                selected_word: (from, to),
-            } => {
+            ClickState::SelectingWords { selected_word: (from, to) } => {
                 if cursor < from {
                     let word_begin = self.cursor - self.find_word_begin(text, self.cursor);
                     self.selection = Some((word_begin, to));
@@ -447,9 +431,7 @@ impl EditboxState {
                     self.cursor = to;
                 }
             }
-            ClickState::SelectingLines {
-                selected_line: (from, to),
-            } => {
+            ClickState::SelectingLines { selected_line: (from, to) } => {
                 if cursor < from {
                     let line_begin = self.cursor - self.find_line_begin(text);
                     let line_end = self.cursor + self.find_line_end(text);

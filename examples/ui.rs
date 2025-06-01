@@ -79,9 +79,7 @@ impl Data {
                     }
                     // there is some item in this slot and it was dragged out - unfit it
                     Drag::Dropped(_, None) if slot.item.is_some() => {
-                        *fit_command = Some(FittingCommand::Unfit {
-                            target_slot: slot.id,
-                        });
+                        *fit_command = Some(FittingCommand::Unfit { target_slot: slot.id });
                     }
                     // there is no item in this slot
                     // this is impossible - slots without items are non-draggable
@@ -100,11 +98,9 @@ impl Data {
     fn inventory(&mut self, ui: &mut Ui) {
         let item_dragging = &mut self.item_dragging;
         for (n, item) in self.inventory.iter().enumerate() {
-            let drag = Group::new(hash!("inventory", n), Vec2::new(50., 50.))
-                .draggable(true)
-                .ui(ui, |ui| {
-                    ui.label(Vec2::new(5., 10.), &item);
-                });
+            let drag = Group::new(hash!("inventory", n), Vec2::new(50., 50.)).draggable(true).ui(ui, |ui| {
+                ui.label(Vec2::new(5., 10.), &item);
+            });
 
             match drag {
                 Drag::Dropped(_, Some(id)) => {
@@ -205,35 +201,27 @@ async fn main() {
                     ui.separator();
                 });
                 ui.tree_node(hash!(), "buttons", |ui| {
-                    widgets::Button::new(texture.clone())
-                        .size(vec2(120., 70.))
-                        .ui(ui);
+                    widgets::Button::new(texture.clone()).size(vec2(120., 70.)).ui(ui);
                     ui.same_line(0.);
                     widgets::Button::new("Button").size(vec2(120., 70.)).ui(ui);
                     widgets::Button::new("Button").size(vec2(120., 70.)).ui(ui);
                     ui.same_line(0.);
-                    widgets::Button::new(texture.clone())
-                        .size(vec2(120., 70.))
-                        .ui(ui);
+                    widgets::Button::new(texture.clone()).size(vec2(120., 70.)).ui(ui);
                 });
                 ui.tree_node(hash!(), "sliders and bars", |ui| {
                     let range0 = -10f32..10f32;
                     ui.slider(hash!(), "[-10 .. 10]", range0.clone(), &mut number0);
                     let progress0 = number0.remap(range0.start, range0.end, 0., 1.);
-                    ProgressBar::new().label("first bar").ui(
-                        ui,
-                        progress0,
-                        format!("{:.0}%", progress0 * 100.).as_str(),
-                    );
+                    ProgressBar::new()
+                        .label("first bar")
+                        .ui(ui, progress0, format!("{:.0}%", progress0 * 100.).as_str());
 
                     let range1 = 0f32..100f32;
                     ui.slider(hash!(), "[0 .. 100]", range1.clone(), &mut number1);
                     let progress1 = number1.remap(range1.start, range1.end, 0., 1.);
-                    ProgressBar::new().label("second bar").ui(
-                        ui,
-                        progress1,
-                        format!("{:.1}/{:.0}", number1, range1.end).as_str(),
-                    );
+                    ProgressBar::new()
+                        .label("second bar")
+                        .ui(ui, progress1, format!("{:.1}/{:.0}", number1, range1.end).as_str());
 
                     let range2 = 0f32..1f32;
                     Slider::new(hash!(), range2.clone())
@@ -261,20 +249,11 @@ async fn main() {
             Some(FittingCommand::Fit { target_slot, item }) => {
                 data.set_item(target_slot, Some(item));
             }
-            Some(FittingCommand::Refit {
-                target_slot,
-                origin_slot,
-            }) => {
+            Some(FittingCommand::Refit { target_slot, origin_slot }) => {
                 let origin_item = data
                     .slots
                     .iter()
-                    .find_map(|(_, slot)| {
-                        if slot.id == origin_slot {
-                            Some(slot.item.clone())
-                        } else {
-                            None
-                        }
-                    })
+                    .find_map(|(_, slot)| if slot.id == origin_slot { Some(slot.item.clone()) } else { None })
                     .flatten();
                 data.set_item(target_slot, origin_item);
                 data.set_item(origin_slot, None);

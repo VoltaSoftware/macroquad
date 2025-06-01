@@ -65,27 +65,20 @@ impl Group {
 
         parent.window.childs.push(self.id);
 
-        let pos = parent
-            .window
-            .cursor
-            .fit(self.size, self.position.map_or(self.layout, Layout::Free));
+        let pos = parent.window.cursor.fit(self.size, self.position.map_or(self.layout, Layout::Free));
         let rect = Rect::new(pos.x, pos.y, self.size.x, self.size.y);
         let parent_id = Some(parent.window.id);
 
         let mut context = ui.begin_window(self.id, parent_id, pos, self.size, false, true);
 
-        let hovered =
-            (self.hoverable || self.draggable) && rect.contains(context.input.mouse_position);
+        let hovered = (self.hoverable || self.draggable) && rect.contains(context.input.mouse_position);
 
         if self.draggable && context.dragging.is_none() && hovered && context.input.click_down {
             *context.dragging = Some((self.id, DragState::Clicked(context.input.mouse_position)));
         }
 
         if let Some((id, DragState::Clicked(orig))) = context.dragging {
-            if *id == self.id
-                && context.input.is_mouse_down
-                && context.input.mouse_position.distance(*orig) > 5.
-            {
+            if *id == self.id && context.input.is_mouse_down && context.input.mouse_position.distance(*orig) > 5. {
                 *context.dragging = Some((self.id, DragState::Dragging(*orig)));
             }
             if context.input.is_mouse_down == false {
@@ -97,17 +90,11 @@ impl Group {
             let id = *id;
 
             if id == self.id {
-                drag = Drag::Dragging(
-                    context.input.mouse_position,
-                    *context.drag_hovered_previous_frame,
-                );
+                drag = Drag::Dragging(context.input.mouse_position, *context.drag_hovered_previous_frame);
 
                 if context.input.is_mouse_down == false {
                     *context.dragging = None;
-                    drag = Drag::Dropped(
-                        context.input.mouse_position,
-                        *context.drag_hovered_previous_frame,
-                    );
+                    drag = Drag::Dropped(context.input.mouse_position, *context.drag_hovered_previous_frame);
                 }
             }
 
@@ -160,8 +147,7 @@ impl GroupToken {
             if
             //parent.dragging.is_none()
             context.input.is_mouse_down
-                && Rect::new(self.pos.x, self.pos.y, self.size.x, self.size.y)
-                    .contains(context.input.mouse_position)
+                && Rect::new(self.pos.x, self.pos.y, self.size.x, self.size.y).contains(context.input.mouse_position)
             {
                 // *context.dragging = Some((
                 //     id,

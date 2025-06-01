@@ -37,26 +37,20 @@ impl<'a> Checkbox<'a> {
     }
 
     pub const fn pos(self, pos: Vec2) -> Self {
-        Self {
-            pos: Some(pos),
-            ..self
-        }
+        Self { pos: Some(pos), ..self }
     }
 
     pub const fn size(self, size: Vec2) -> Self {
-        Self {
-            size: Some(size),
-            ..self
-        }
+        Self { size: Some(size), ..self }
     }
 
     pub fn ui(self, ui: &mut Ui, data: &mut bool) {
         let context = ui.get_active_window_context();
 
-        let label_size = context.window.painter.content_with_margins_size(
-            &context.style.label_style,
-            &UiContent::Label(self.label.into()),
-        );
+        let label_size = context
+            .window
+            .painter
+            .content_with_margins_size(&context.style.label_style, &UiContent::Label(self.label.into()));
         let size = self.size.unwrap_or(vec2(
             context.window.cursor.area.w - context.style.margin * 2. - context.window.cursor.ident,
             label_size.y.max(22.),
@@ -67,37 +61,18 @@ impl<'a> Checkbox<'a> {
             .map(|pos| pos + context.window.cursor.fit(size, Layout::Vertical))
             .unwrap_or_else(|| context.window.cursor.fit(size, Layout::Vertical));
 
-        let whole_area = Vec2::new(
-            if self.label.is_empty() {
-                size.x
-            } else {
-                size.x * self.ratio
-            },
-            size.y,
-        );
+        let whole_area = Vec2::new(if self.label.is_empty() { size.x } else { size.x * self.ratio }, size.y);
         let checkbox_area = Vec2::new(19., 19.);
-        let checkbox_pos = Vec2::new(
-            pos.x + whole_area.x - 19. - 15.,
-            pos.y + context.style.margin,
-        );
+        let checkbox_pos = Vec2::new(pos.x + whole_area.x - 19. - 15., pos.y + context.style.margin);
 
-        let hovered = Rect::new(
-            checkbox_pos.x,
-            checkbox_pos.y,
-            checkbox_area.x,
-            checkbox_area.y,
-        )
-        .contains(context.input.mouse_position);
+        let hovered = Rect::new(checkbox_pos.x, checkbox_pos.y, checkbox_area.x, checkbox_area.y).contains(context.input.mouse_position);
 
-        let background = context
-            .style
-            .checkbox_style
-            .background_sprite(ElementState {
-                focused: context.focused,
-                hovered,
-                clicked: *data,
-                selected: false,
-            });
+        let background = context.style.checkbox_style.background_sprite(ElementState {
+            focused: context.focused,
+            hovered,
+            clicked: *data,
+            selected: false,
+        });
 
         let color = context.style.checkbox_style.color(ElementState {
             focused: context.focused,
@@ -107,11 +82,7 @@ impl<'a> Checkbox<'a> {
         });
 
         if let Some(background) = background {
-            let background_margin = context
-                .style
-                .checkbox_style
-                .background_margin
-                .unwrap_or_default();
+            let background_margin = context.style.checkbox_style.background_margin.unwrap_or_default();
 
             context.window.painter.draw_sprite(
                 Rect::new(checkbox_pos.x, checkbox_pos.y, 19., 19.),
@@ -121,12 +92,7 @@ impl<'a> Checkbox<'a> {
             );
         } else {
             context.window.painter.draw_rect(
-                Rect::new(
-                    checkbox_pos.x,
-                    checkbox_pos.y,
-                    checkbox_area.x,
-                    checkbox_area.y,
-                ),
+                Rect::new(checkbox_pos.x, checkbox_pos.y, checkbox_area.x, checkbox_area.y),
                 None,
                 color,
             );

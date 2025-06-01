@@ -199,26 +199,19 @@ impl<T: 'static + Any> Coroutine<T> {
     }
 }
 
-pub fn start_coroutine<T: 'static + Any>(
-    future: impl Future<Output = T> + 'static + Send,
-) -> Coroutine<T> {
+pub fn start_coroutine<T: 'static + Any>(future: impl Future<Output = T> + 'static + Send) -> Coroutine<T> {
     let context = &mut get_context().coroutines_context;
 
     let has_value = TypeId::of::<()>() != TypeId::of::<T>();
 
-    let id = context
-        .coroutines
-        .push(CoroutineState::Running(CoroutineInternal {
-            future: Box::pin(async { Box::new(future.await) as _ }),
-            has_value,
-            manual_poll: false,
-            manual_time: None,
-        }));
+    let id = context.coroutines.push(CoroutineState::Running(CoroutineInternal {
+        future: Box::pin(async { Box::new(future.await) as _ }),
+        has_value,
+        manual_poll: false,
+        manual_time: None,
+    }));
 
-    Coroutine {
-        id,
-        _phantom: PhantomData,
-    }
+    Coroutine { id, _phantom: PhantomData }
 }
 
 pub fn stop_all_coroutines() {
@@ -257,9 +250,7 @@ impl Future for TimerDelayFuture {
 }
 
 pub const fn wait_seconds(time: f32) -> TimerDelayFuture {
-    TimerDelayFuture {
-        remaining_time: time,
-    }
+    TimerDelayFuture { remaining_time: time }
 }
 
 /// Special built-in coroutines for modifying values over time.
@@ -282,10 +273,7 @@ pub mod tweens {
         start_time: f64,
         time: f32,
     }
-    impl<T> Unpin for LinearTweenFuture<T> where
-        T: Copy + Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T>
-    {
-    }
+    impl<T> Unpin for LinearTweenFuture<T> where T: Copy + Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T> {}
 
     impl<T> Future for LinearTweenFuture<T>
     where
@@ -316,13 +304,7 @@ pub mod tweens {
         }
     }
 
-    pub fn linear<T, T1, F>(
-        handle: Handle<T1>,
-        lens: F,
-        from: T,
-        to: T,
-        time: f32,
-    ) -> LinearTweenFuture<T>
+    pub fn linear<T, T1, F>(handle: Handle<T1>, lens: F, from: T, to: T, time: f32) -> LinearTweenFuture<T>
     where
         T: Copy + Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T>,
         T1: Node,
@@ -344,14 +326,7 @@ pub mod tweens {
         F: for<'r> FnMut(&'r mut T1) -> &'r mut T,
     {
         for point in path.windows(2) {
-            linear(
-                handle,
-                &mut lens,
-                point[0],
-                point[1],
-                time / path.len() as f32,
-            )
-            .await
+            linear(handle, &mut lens, point[0], point[1], time / path.len() as f32).await
         }
     }
 }

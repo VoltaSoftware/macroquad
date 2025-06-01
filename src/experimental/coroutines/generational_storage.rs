@@ -29,17 +29,11 @@ impl<T> GenerationalStorage<T> {
             assert!(self.vec[free_id].is_none());
 
             generation = old_generation + 1;
-            self.vec[free_id] = Some(GenerationalCell {
-                state: data,
-                generation,
-            });
+            self.vec[free_id] = Some(GenerationalCell { state: data, generation });
             free_id
         } else {
             generation = 0;
-            self.vec.push(Some(GenerationalCell {
-                state: data,
-                generation,
-            }));
+            self.vec.push(Some(GenerationalCell { state: data, generation }));
             self.vec.len() - 1
         };
 
