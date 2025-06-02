@@ -218,6 +218,9 @@ pub struct TextParams<'a> {
     /// Default is 0.0
     pub rotation: f32,
     pub color: Color,
+    /// Enable text markup with [#RRGGBB] or [#RRGGBBAA] color tags
+    /// Default is true
+    pub enable_markup: bool,
 }
 
 impl<'a> Default for TextParams<'a> {
@@ -229,6 +232,7 @@ impl<'a> Default for TextParams<'a> {
             font_scale_aspect: 1.0,
             color: WHITE,
             rotation: 0.0,
+            enable_markup: true,
         }
     }
 }
@@ -311,42 +315,84 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) -
     let font_characters = font.characters.borrow();
     let mut atlas = font.atlas.borrow_mut();
 
-    for character in text.chars() {
-        let char_data = &font_characters[&(character, font_size)];
-        let offset_x = char_data.offset_x as f32 * font_scale_x;
-        let offset_y = char_data.offset_y as f32 * font_scale_y;
+    // Initialize markup handling
+    let enable_markup = params.enable_markup;
+    let original_color = params.color;
+    let mut color = original_color;
+    let mut color_stack = SmallVec::<[Color; 4]>::new();
 
-        let glyph = atlas.get(char_data.sprite).as_ref().unwrap().rect;
-        let glyph_scaled_h = glyph.h * font_scale_y;
+    // Convert text to chars for more efficient markup parsing
+    let chars: SmallVec<[char; 64]> = text.chars().collect();
+    let length = chars.len();
+    let mut i = 0;
 
-        min_offset_y = min_offset_y.min(offset_y);
-        max_offset_y = max_offset_y.max(glyph_scaled_h + offset_y);
+    while i < length {
+        let mut c = chars[i];
 
-        let dest_x = (offset_x + total_width) * rot_cos + (glyph_scaled_h + offset_y) * rot_sin;
-        let dest_y = (offset_x + total_width) * rot_sin + (-glyph_scaled_h - offset_y) * rot_cos;
+        // Handle markup if enabled
+        if enable_markup && c == '[' {
+            let (action, next_pos) = parse_markup(&chars, i);
 
-        let dest = Rect::new(
-            dest_x / dpi_scaling + x,
-            dest_y / dpi_scaling + y,
-            glyph.w / dpi_scaling * font_scale_x,
-            glyph.h / dpi_scaling * font_scale_y,
-        );
+            match action {
+                MarkupResult::Noop => {}
+                MarkupResult::Literal(char) => {
+                    c = char;
+                }
+                MarkupResult::Push(new_color) => {
+                    color_stack.push(color);
+                    color = new_color;
+                    i = next_pos;
+                    continue;
+                }
+                MarkupResult::Pop => {
+                    color = color_stack.pop().unwrap_or(original_color);
+                    i = next_pos;
+                    continue;
+                }
+            }
 
-        total_width += char_data.advance * font_scale_x;
+            i = next_pos;
+        }
 
-        crate::texture::draw_texture_ex(
-            &crate::texture::Texture2D::create_and_cache_size(TextureHandle::Unmanaged(atlas.texture())),
-            dest.x,
-            dest.y,
-            params.color,
-            crate::texture::DrawTextureParams {
-                dest_size: Some(vec2(dest.w, dest.h)),
-                source: Some(glyph),
-                rotation: rot,
-                pivot: Some(vec2(dest.x, dest.y)),
-                ..Default::default()
-            },
-        );
+        // Handle normal character drawing
+        if let Some(char_data) = font_characters.get(&(c, font_size)) {
+            let offset_x = char_data.offset_x as f32 * font_scale_x;
+            let offset_y = char_data.offset_y as f32 * font_scale_y;
+
+            let glyph = atlas.get(char_data.sprite).as_ref().unwrap().rect;
+            let glyph_scaled_h = glyph.h * font_scale_y;
+
+            min_offset_y = min_offset_y.min(offset_y);
+            max_offset_y = max_offset_y.max(glyph_scaled_h + offset_y);
+
+            let dest_x = (offset_x + total_width) * rot_cos + (glyph_scaled_h + offset_y) * rot_sin;
+            let dest_y = (offset_x + total_width) * rot_sin + (-glyph_scaled_h - offset_y) * rot_cos;
+
+            let dest = Rect::new(
+                dest_x / dpi_scaling + x,
+                dest_y / dpi_scaling + y,
+                glyph.w / dpi_scaling * font_scale_x,
+                glyph.h / dpi_scaling * font_scale_y,
+            );
+
+            total_width += char_data.advance * font_scale_x;
+
+            crate::texture::draw_texture_ex(
+                &crate::texture::Texture2D::create_and_cache_size(TextureHandle::Unmanaged(atlas.texture())),
+                dest.x,
+                dest.y,
+                color, // Use the current color from markup or params
+                crate::texture::DrawTextureParams {
+                    dest_size: Some(vec2(dest.w, dest.h)),
+                    source: Some(glyph),
+                    rotation: rot,
+                    pivot: Some(vec2(dest.x, dest.y)),
+                    ..Default::default()
+                },
+            );
+        }
+
+        i += 1;
     }
 
     TextDimensions {
@@ -453,4 +499,99 @@ pub fn camera_font_scale(world_font_size: f32) -> (u16, f32, f32) {
     let font_size = screen_font_size as u16;
 
     (font_size, cam_h / scr_h, scr_h / scr_w * cam_w / cam_h)
+}
+
+use smallvec::SmallVec;
+
+enum MarkupResult {
+    Literal(char),
+    Pop,
+    Push(Color),
+    Noop,
+}
+
+fn parse_markup(chars: &[char], pos: usize) -> (MarkupResult, usize) {
+    let length = chars.len();
+
+    let c = chars[pos];
+
+    if c == '[' {
+        // Ensure we can read a next character
+        if pos + 1 < length {
+            // Check if the next char is just a bracket
+            if chars[pos + 1] == '[' {
+                return (MarkupResult::Literal('['), pos + 1);
+            } else if chars[pos + 1] == ']' {
+                // This would be a pop
+                return (MarkupResult::Pop, pos + 2);
+            } else if chars[pos + 1] == '#' {
+                // We're now going to parse a color tag (either RRGGBBAA (8) or RRGGBB (6) where AA is set to FF)
+                let mut rgba = 0;
+                let mut shift = 32; // 32 bits (we work with nibbles, not bytes)
+
+                // Parse the RGBA color tag.
+                for x in (pos + 2)..(pos + 2 + 8 + 1) {
+                    if x < length {
+                        let char = chars[x];
+
+                        // If we end the batch, ensure we have either 6 or 8 chars or it won't be valid.
+                        if char == ']' {
+                            // Shift is 4 in RRGGBB and -4 in RRGGBBAA.
+                            if shift == 8 {
+                                // 6 chars because RRGGBB
+                                rgba |= 0xFF;
+
+                                return (
+                                    MarkupResult::Push(Color {
+                                        r: ((rgba >> 24) & 0xFF) as f32 / 255.0,
+                                        g: ((rgba >> 16) & 0xFF) as f32 / 255.0,
+                                        b: ((rgba >> 8) & 0xFF) as f32 / 255.0,
+                                        a: (rgba & 0xFF) as f32 / 255.0,
+                                    }),
+                                    pos + 2 + 6 + 1,
+                                );
+                            } else if shift == 0 {
+                                // 8 chars because RRGGBBAA
+                                return (
+                                    MarkupResult::Push(Color {
+                                        r: ((rgba >> 24) & 0xFF) as f32 / 255.0,
+                                        g: ((rgba >> 16) & 0xFF) as f32 / 255.0,
+                                        b: ((rgba >> 8) & 0xFF) as f32 / 255.0,
+                                        a: (rgba & 0xFF) as f32 / 255.0,
+                                    }),
+                                    pos + 2 + 8 + 1,
+                                );
+                            } else {
+                                // Wrong shift. Literal.
+                                return (MarkupResult::Literal('['), pos + 1);
+                            }
+                        }
+
+                        // Parse hex nibble from the char given
+                        let nibble = if ('a'..='f').contains(&char) {
+                            10 + char as u8 - b'a'
+                        } else if char.is_ascii_digit() {
+                            char as u8 - b'0'
+                        } else if ('A'..='F').contains(&char) {
+                            10 + char as u8 - b'A'
+                        } else {
+                            // Don't parse this block anymore because it's corrupt.
+                            return (MarkupResult::Literal('['), pos + 1);
+                        };
+
+                        shift -= 4;
+                        rgba |= (nibble as u32) << shift;
+                    } else {
+                        // It was out of bounds, so it's taken literally.
+                        return (MarkupResult::Literal('['), pos + 1);
+                    }
+                }
+
+                // Assume the color tag parsing went wrong and take the bracket literally.
+                return (MarkupResult::Literal('['), pos + 1);
+            }
+        }
+    }
+
+    (MarkupResult::Noop, pos + 1)
 }
