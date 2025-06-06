@@ -402,48 +402,6 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) -
     }
 }
 
-/// Draw multiline text with the given font_size, line_distance_factor and color.
-/// If no line distance but a custom font is given, the fonts line gap will be used as line distance factor if it exists.
-pub fn draw_multiline_text(text: impl AsRef<str>, x: f32, y: f32, font_size: f32, line_distance_factor: Option<f32>, color: Color) {
-    draw_multiline_text_ex(
-        text,
-        x,
-        y,
-        line_distance_factor,
-        TextParams {
-            font_size: font_size as u16,
-            font_scale: 1.0,
-            color,
-            ..Default::default()
-        },
-    );
-}
-
-/// Draw multiline text with the given line distance and custom params such as font, font size and font scale.
-/// If no line distance but a custom font is given, the fonts newline size will be used as line distance factor if it exists, else default to font size.
-pub fn draw_multiline_text_ex(text: impl AsRef<str>, mut x: f32, mut y: f32, line_distance_factor: Option<f32>, params: TextParams) {
-    let text = text.as_ref();
-
-    let line_distance = match line_distance_factor {
-        Some(distance) => distance,
-        None => {
-            let mut font_line_distance = 0.0;
-            let font = if let Some(font) = params.font { font } else { &get_default_font() };
-            if let Some(metrics) = font.font.horizontal_line_metrics(1.0) {
-                font_line_distance = metrics.new_line_size;
-            }
-
-            font_line_distance
-        }
-    };
-
-    for line in text.lines() {
-        draw_text_ex(line, x, y, params.clone());
-        x -= (line_distance * params.font_size as f32 * params.font_scale) * params.rotation.sin();
-        y += (line_distance * params.font_size as f32 * params.font_scale) * params.rotation.cos();
-    }
-}
-
 /// Get the text center.
 pub fn get_text_center(text: impl AsRef<str>, font: Option<&Font>, font_size: u16, font_scale: f32, rotation: f32) -> crate::Vec2 {
     let measure = measure_text(text, font, font_size, font_scale);
