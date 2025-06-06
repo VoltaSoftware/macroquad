@@ -269,7 +269,7 @@ impl Painter {
     }
 
     pub fn label_size(&self, label: &str, _multiline: Option<f32>, font: &Font, font_size: u16) -> TextDimensions {
-        font.measure_text(label, font_size, 1.0, 1.0)
+        font.measure_text(label, font_size, 1.0, 1.0, None)
     }
 
     /// If character is in font atlas - will return x advance from position to potential next character position
