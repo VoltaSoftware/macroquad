@@ -743,7 +743,7 @@ impl EventHandler for Stage {
         #[cfg(not(target_arch = "wasm32"))]
         {
             // TODO: consider making it a part of miniquad?
-            std::thread::yield_now();
+            //std::thread::yield_now();
         }
     }
 
