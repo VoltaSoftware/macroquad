@@ -59,14 +59,9 @@ pub mod shapes;
 pub mod text;
 pub mod texture;
 pub mod time;
-pub mod ui;
 pub mod window;
 
-pub mod experimental;
-
 pub mod prelude;
-
-pub mod telemetry;
 
 mod error;
 
@@ -150,7 +145,6 @@ use crate::{
     color::{colors::*, Color},
     quad_gl::QuadGl,
     texture::TextureHandle,
-    ui::ui_context::UiContext,
 };
 
 use glam::{vec2, Mat4, Vec2};
@@ -159,19 +153,19 @@ pub(crate) mod thread_assert {
     static mut THREAD_ID: Option<std::thread::ThreadId> = None;
 
     pub fn set_thread_id() {
-        unsafe {
+        /*        unsafe {
             THREAD_ID = Some(std::thread::current().id());
-        }
+        }*/
     }
 
     pub fn same_thread() {
-        unsafe {
+        /*        unsafe {
             thread_local! {
                 static CURRENT_THREAD_ID: std::thread::ThreadId = std::thread::current().id();
             }
             assert!(THREAD_ID.is_some());
             assert!(THREAD_ID.unwrap() == CURRENT_THREAD_ID.with(|id| *id));
-        }
+        }*/
     }
 }
 struct Context {
@@ -206,8 +200,6 @@ struct Context {
     gl: QuadGl,
     camera_matrix: Option<Mat4>,
 
-    ui_context: UiContext,
-    coroutines_context: experimental::coroutines::CoroutinesContext,
     fonts_storage: text::FontsStorage,
 
     pc_assets_folder: Option<String>,
@@ -346,13 +338,11 @@ impl Context {
             camera_matrix: None,
             gl: QuadGl::new(&mut *ctx, draw_call_vertex_capacity, draw_call_index_capacity),
 
-            ui_context: UiContext::new(&mut *ctx, screen_width, screen_height),
             fonts_storage: text::FontsStorage::new(&mut *ctx),
             texture_batcher: texture::Batcher::new(&mut *ctx),
             camera_stack: vec![],
 
             audio_context: audio::AudioContext::new(),
-            coroutines_context: experimental::coroutines::CoroutinesContext::new(),
 
             pc_assets_folder: None,
 
@@ -390,10 +380,6 @@ impl Context {
     }
 
     fn begin_frame(&mut self) {
-        telemetry::begin_gpu_query("GPU");
-
-        self.ui_context.process_input();
-
         let color = Self::DEFAULT_BG_COLOR;
 
         get_quad_context().clear(Some((color.r, color.g, color.b, color.a)), None, None);
@@ -401,11 +387,8 @@ impl Context {
     }
 
     fn end_frame(&mut self) {
-        crate::experimental::scene::update();
-
         self.perform_render_passes();
 
-        self.ui_context.draw(get_quad_context(), &mut self.gl);
         let screen_mat = self.pixel_perfect_projection_matrix();
         self.gl.draw(get_quad_context(), screen_mat);
 
@@ -419,8 +402,6 @@ impl Context {
                 panic!("screenshot successfully saved to `screenshot.png`");
             }
         }
-
-        telemetry::end_gpu_query();
 
         self.mouse_wheel = Vec2::new(0., 0.);
         self.keys_pressed.clear();
@@ -505,7 +486,6 @@ struct Stage {
 
 impl EventHandler for Stage {
     fn resize_event(&mut self, width: f32, height: f32) {
-        let _z = telemetry::ZoneGuard::new("Event::resize_event");
         get_context().screen_width = width;
         get_context().screen_height = height;
 
@@ -757,10 +737,8 @@ impl EventHandler for Stage {
     }
 
     fn update(&mut self) {
-        let _z = telemetry::ZoneGuard::new("Event::update");
-
         // Unless called every frame, cursor will not remain grabbed
-        miniquad::window::set_cursor_grab(get_context().cursor_grabbed);
+        //miniquad::window::set_cursor_grab(get_context().cursor_grabbed);
 
         #[cfg(not(target_arch = "wasm32"))]
         {
@@ -781,63 +759,34 @@ impl EventHandler for Stage {
 
     fn draw(&mut self) {
         {
-            let _z = telemetry::ZoneGuard::new("Event::draw");
-
             use std::panic;
 
+            let start = date::now();
             {
-                let _z = telemetry::ZoneGuard::new("Event::draw begin_frame");
                 get_context().begin_frame();
             }
 
-            fn maybe_unwind(unwind: bool, f: impl FnOnce() + Sized + panic::UnwindSafe) -> bool {
-                if unwind {
-                    panic::catch_unwind(f).is_ok()
-                } else {
-                    f();
-                    true
-                }
-            }
-
-            let result = maybe_unwind(
-                get_context().unwind,
-                AssertUnwindSafe(|| {
-                    let _z = telemetry::ZoneGuard::new("Event::draw user code");
-
-                    if exec::resume(&mut self.main_future).is_some() {
-                        self.main_future = Box::pin(async move {});
-                        miniquad::window::quit();
-                        return;
-                    }
-                    get_context().coroutines_context.update();
-                }),
-            );
-
-            if result == false {
-                if let Some(recovery_future) = get_context().recovery_future.take() {
-                    self.main_future = recovery_future;
-                }
+            if exec::resume(&mut self.main_future).is_some() {
+                self.main_future = Box::pin(async move {});
+                miniquad::window::quit();
+                return;
             }
 
             {
-                let _z = telemetry::ZoneGuard::new("Event::draw end_frame");
                 get_context().end_frame();
             }
-            get_context().frame_time = date::now() - get_context().last_frame_time;
-            get_context().last_frame_time = date::now();
 
             #[cfg(any(target_arch = "wasm32", target_os = "linux"))]
             {
-                let _z = telemetry::ZoneGuard::new("glFinish/glFLush");
-
                 unsafe {
                     miniquad::gl::glFlush();
                     miniquad::gl::glFinish();
                 }
             }
-        }
 
-        telemetry::reset();
+            get_context().frame_time = date::now() - start;
+            //get_context().last_frame_time = date::now();
+        }
     }
 
     fn window_restored_event(&mut self) {

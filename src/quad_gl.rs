@@ -4,7 +4,7 @@ use miniquad::*;
 
 pub use miniquad::{FilterMode, TextureId as MiniquadTexture, UniformDesc};
 
-use crate::{color::Color, logging::warn, telemetry, texture::Texture2D, tobytes::ToBytes, Error};
+use crate::{color::Color, logging::warn, texture::Texture2D, tobytes::ToBytes, Error};
 
 use std::collections::BTreeMap;
 
@@ -734,10 +734,6 @@ impl QuadGl {
             ctx.apply_uniforms_from_bytes(pipeline.uniforms_data.as_ptr(), pipeline.uniforms_data.len());
             ctx.draw(0, dc.indices_count as i32, 1);
             ctx.end_render_pass();
-
-            if dc.capture {
-                telemetry::track_drawcall(&pipeline.pipeline, bindings, dc.indices_count);
-            }
 
             dc.vertices_count = 0;
             dc.indices_count = 0;

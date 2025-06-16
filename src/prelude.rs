@@ -18,8 +18,6 @@ pub use glam;
 pub use miniquad::{conf::Conf, Comparison, PipelineParams, ShaderError, ShaderSource, UniformDesc, UniformType};
 pub use quad_rand as rand;
 
-pub use crate::experimental::*;
-
 pub use crate::logging::*;
 
 pub use crate::{color_u8, DroppedFile};
