@@ -2,10 +2,10 @@
 
 use std::collections::HashSet;
 
+use crate::get_context;
 use crate::prelude::screen_height;
 use crate::prelude::screen_width;
 use crate::Vec2;
-use crate::{get_context, DroppedFile};
 pub use miniquad::{KeyCode, MouseButton};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,58 +33,6 @@ pub struct Touch {
     pub id: u64,
     pub phase: TouchPhase,
     pub position: Vec2,
-}
-
-/// Constrain mouse to window
-pub fn set_cursor_grab(grab: bool) {
-    let context = get_context();
-    context.cursor_grabbed = grab;
-    miniquad::window::set_cursor_grab(grab);
-}
-
-/// Set mouse cursor visibility
-pub fn show_mouse(shown: bool) {
-    miniquad::window::show_mouse(shown);
-}
-
-/// Return mouse position in pixels.
-pub fn mouse_position() -> (f32, f32) {
-    let context = get_context();
-
-    (
-        context.mouse_position.x / miniquad::window::dpi_scale(),
-        context.mouse_position.y / miniquad::window::dpi_scale(),
-    )
-}
-
-/// Return mouse position in range [-1; 1].
-pub fn mouse_position_local() -> Vec2 {
-    let (pixels_x, pixels_y) = mouse_position();
-
-    convert_to_local(Vec2::new(pixels_x, pixels_y))
-}
-
-/// Returns the difference between the current mouse position and the mouse position on the previous frame.
-pub fn mouse_delta_position() -> Vec2 {
-    let context = get_context();
-
-    let current_position = mouse_position_local();
-    let last_position = context.last_mouse_position.unwrap_or(current_position);
-
-    // Calculate the delta
-    last_position - current_position
-}
-
-/// This is set to true by default, meaning touches will raise mouse events in addition to raising touch events.
-/// If set to false, touches won't affect mouse events.
-pub fn is_simulating_mouse_with_touch() -> bool {
-    get_context().simulate_mouse_with_touch
-}
-
-/// This is set to true by default, meaning touches will raise mouse events in addition to raising touch events.
-/// If set to false, touches won't affect mouse events.
-pub fn simulate_mouse_with_touch(option: bool) {
-    get_context().simulate_mouse_with_touch = option;
 }
 
 /// This is set to false by default, meaning mouse events will raise touch events in addition to raising mouse events.
@@ -187,27 +135,6 @@ pub fn clear_input_queue() {
     context.chars_pressed_ui_queue.clear();
 }
 
-/// Detect if the button is being pressed
-pub fn is_mouse_button_down(btn: MouseButton) -> bool {
-    let context = get_context();
-
-    context.mouse_down.contains(&btn)
-}
-
-/// Detect if the button has been pressed once
-pub fn is_mouse_button_pressed(btn: MouseButton) -> bool {
-    let context = get_context();
-
-    context.mouse_pressed.contains(&btn)
-}
-
-/// Detect if the button has been released this frame
-pub fn is_mouse_button_released(btn: MouseButton) -> bool {
-    let context = get_context();
-
-    context.mouse_released.contains(&btn)
-}
-
 /// Convert a position in pixels to a position in the range [-1; 1].
 fn convert_to_local(pixel_pos: Vec2) -> Vec2 {
     Vec2::new(pixel_pos.x / screen_width(), pixel_pos.y / screen_height()) * 2.0 - Vec2::new(1.0, 1.0)
@@ -221,35 +148,4 @@ pub fn prevent_quit() {
 /// Detect if quit has been requested
 pub fn is_quit_requested() -> bool {
     get_context().quit_requested
-}
-
-/// Gets the files which have been dropped on the window.
-pub fn get_dropped_files() -> Vec<DroppedFile> {
-    get_context().dropped_files()
-}
-
-/// Functions for advanced input processing.
-///
-/// Functions in this module should be used by external tools that uses miniquad system, like different UI libraries. User shouldn't use this function.
-pub mod utils {
-    use crate::get_context;
-
-    /// Register input subscriber. Returns subscriber identifier that must be used in `repeat_all_miniquad_input`.
-    pub fn register_input_subscriber() -> usize {
-        let context = get_context();
-
-        context.input_events.push(vec![]);
-
-        context.input_events.len() - 1
-    }
-
-    /// Repeats all events that came since last call of this function with current value of `subscriber`. This function must be called at each frame.
-    pub fn repeat_all_miniquad_input<T: miniquad::EventHandler>(t: &mut T, subscriber: usize) {
-        let context = get_context();
-
-        for event in &context.input_events[subscriber] {
-            event.repeat(t);
-        }
-        context.input_events[subscriber].clear();
-    }
 }

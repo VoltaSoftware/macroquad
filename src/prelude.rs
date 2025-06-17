@@ -20,4 +20,4 @@ pub use quad_rand as rand;
 
 pub use crate::logging::*;
 
-pub use crate::{color_u8, DroppedFile};
+pub use crate::color_u8;

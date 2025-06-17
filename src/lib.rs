@@ -174,7 +174,6 @@ struct Context {
     screen_width: f32,
     screen_height: f32,
 
-    simulate_mouse_with_touch: bool,
     simulate_touch_with_mouse: bool,
 
     keys_down: HashSet<KeyCode>,
@@ -186,14 +185,10 @@ struct Context {
     touches: HashMap<u64, input::Touch>,
     chars_pressed_queue: Vec<char>,
     chars_pressed_ui_queue: Vec<char>,
-    mouse_position: Vec2,
-    last_mouse_position: Option<Vec2>,
     mouse_wheel: Vec2,
 
     prevent_quit_event: bool,
     quit_requested: bool,
-
-    cursor_grabbed: bool,
 
     input_events: Vec<Vec<MiniquadInputEvent>>,
 
@@ -312,7 +307,6 @@ impl Context {
             screen_width,
             screen_height,
 
-            simulate_mouse_with_touch: true,
             simulate_touch_with_mouse: false,
 
             keys_down: HashSet::new(),
@@ -324,14 +318,10 @@ impl Context {
             mouse_pressed: HashSet::new(),
             mouse_released: HashSet::new(),
             touches: HashMap::new(),
-            mouse_position: vec2(0., 0.),
-            last_mouse_position: None,
             mouse_wheel: vec2(0., 0.),
 
             prevent_quit_event: false,
             quit_requested: false,
-
-            cursor_grabbed: false,
 
             input_events: Vec::new(),
 
@@ -408,7 +398,6 @@ impl Context {
         self.keys_released.clear();
         self.mouse_pressed.clear();
         self.mouse_released.clear();
-        self.last_mouse_position = Some(crate::prelude::mouse_position_local());
 
         self.quit_requested = false;
 
@@ -495,7 +484,7 @@ impl EventHandler for Stage {
     }
 
     fn raw_mouse_motion(&mut self, x: f32, y: f32) {
-        let context = get_context();
+        /*        let context = get_context();
 
         if context.cursor_grabbed {
             context.mouse_position += Vec2::new(x, y);
@@ -505,20 +494,16 @@ impl EventHandler for Stage {
                 y: context.mouse_position.y,
             };
             context.input_events.iter_mut().for_each(|arr| arr.push(event.clone()));
-        }
+        }*/
     }
 
     fn mouse_motion_event(&mut self, x: f32, y: f32) {
         let context = get_context();
 
-        if !context.cursor_grabbed {
-            context.mouse_position = Vec2::new(x, y);
-
-            context
-                .input_events
-                .iter_mut()
-                .for_each(|arr| arr.push(MiniquadInputEvent::MouseMotion { x, y }));
-        }
+        context
+            .input_events
+            .iter_mut()
+            .for_each(|arr| arr.push(MiniquadInputEvent::MouseMotion { x, y }));
 
         // Generate touch events when simulate_touch_with_mouse is enabled
         // Only generate move events if the left mouse button is down
@@ -575,10 +560,6 @@ impl EventHandler for Stage {
             .iter_mut()
             .for_each(|arr| arr.push(MiniquadInputEvent::MouseButtonDown { x, y, btn }));
 
-        if !context.cursor_grabbed {
-            context.mouse_position = Vec2::new(x, y);
-        }
-
         // Generate touch events when simulate_touch_with_mouse is enabled
         if context.simulate_touch_with_mouse && btn == MouseButton::Left {
             let id = 0; // Use a consistent ID for mouse-simulated touch
@@ -616,10 +597,6 @@ impl EventHandler for Stage {
             .input_events
             .iter_mut()
             .for_each(|arr| arr.push(MiniquadInputEvent::MouseButtonUp { x, y, btn }));
-
-        if !context.cursor_grabbed {
-            context.mouse_position = Vec2::new(x, y);
-        }
 
         // Generate touch events when simulate_touch_with_mouse is enabled
         if context.simulate_touch_with_mouse && btn == MouseButton::Left {
@@ -660,26 +637,14 @@ impl EventHandler for Stage {
             },
         );
 
-        if context.simulate_mouse_with_touch {
-            if phase == TouchPhase::Started {
-                self.mouse_button_down_event(MouseButton::Left, x, y);
-            }
-
-            if phase == TouchPhase::Ended {
-                self.mouse_button_up_event(MouseButton::Left, x, y);
-            }
-
-            if phase == TouchPhase::Moved {
-                self.mouse_motion_event(x, y);
-            }
-        } else if context.update_on.touch {
-            miniquad::window::schedule_update();
-        };
-
         context
             .input_events
             .iter_mut()
             .for_each(|arr| arr.push(MiniquadInputEvent::Touch { phase, id, x, y }));
+
+        if context.update_on.touch {
+            miniquad::window::schedule_update();
+        }
     }
 
     fn char_event(&mut self, character: char, modifiers: KeyMods, repeat: bool) {
