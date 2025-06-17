@@ -761,7 +761,6 @@ impl EventHandler for Stage {
         {
             use std::panic;
 
-            let start = date::now();
             {
                 get_context().begin_frame();
             }
@@ -784,8 +783,8 @@ impl EventHandler for Stage {
                 }
             }
 
-            get_context().frame_time = date::now() - start;
-            //get_context().last_frame_time = date::now();
+            get_context().frame_time = date::now() - get_context().last_frame_time;
+            get_context().last_frame_time = date::now();
         }
     }
 
