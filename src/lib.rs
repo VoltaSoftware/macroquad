@@ -307,7 +307,7 @@ impl Context {
             screen_width,
             screen_height,
 
-            simulate_touch_with_mouse: false,
+            simulate_touch_with_mouse: true,
 
             keys_down: HashSet::new(),
             keys_pressed: HashSet::new(),

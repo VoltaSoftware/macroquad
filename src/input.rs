@@ -35,13 +35,13 @@ pub struct Touch {
     pub position: Vec2,
 }
 
-/// This is set to false by default, meaning mouse events will raise touch events in addition to raising mouse events.
+/// This is set to true by default, meaning mouse events will raise touch events in addition to raising mouse events.
 /// If set to false, mouse events won't affect touches.
 pub fn is_simulating_touch_with_mouse() -> bool {
     get_context().simulate_touch_with_mouse
 }
 
-/// This is set to false by default, meaning mouse events will raise touch events in addition to raising mouse events.
+/// This is set to true by default, meaning mouse events will raise touch events in addition to raising mouse events.
 /// If set to false, mouse events won't affect touches.
 pub fn simulate_touch_with_mouse(option: bool) {
     get_context().simulate_touch_with_mouse = option;
