@@ -49,20 +49,7 @@ pub fn simulate_touch_with_mouse(option: bool) {
 
 /// Return touches with positions in pixels.
 pub fn touches() -> Vec<Touch> {
-    get_context().touches.values().cloned().collect()
-}
-
-/// Return touches with positions in range [-1; 1].
-pub fn touches_local() -> Vec<Touch> {
-    get_context()
-        .touches
-        .values()
-        .map(|touch| {
-            let mut touch = touch.clone();
-            touch.position = convert_to_local(touch.position);
-            touch
-        })
-        .collect()
+    get_context().touches.clone()
 }
 
 pub fn mouse_wheel() -> (f32, f32) {

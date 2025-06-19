@@ -182,7 +182,7 @@ struct Context {
     mouse_down: HashSet<MouseButton>,
     mouse_pressed: HashSet<MouseButton>,
     mouse_released: HashSet<MouseButton>,
-    touches: HashMap<u64, input::Touch>,
+    touches: Vec<input::Touch>,
     chars_pressed_queue: Vec<char>,
     chars_pressed_ui_queue: Vec<char>,
     mouse_wheel: Vec2,
@@ -317,7 +317,7 @@ impl Context {
             mouse_down: HashSet::new(),
             mouse_pressed: HashSet::new(),
             mouse_released: HashSet::new(),
-            touches: HashMap::new(),
+            touches: Vec::new(),
             mouse_wheel: vec2(0., 0.),
 
             prevent_quit_event: false,
@@ -404,11 +404,20 @@ impl Context {
         self.textures.garbage_collect(get_quad_context());
 
         // remove all touches that were Ended or Cancelled
-        self.touches
-            .retain(|_, touch| touch.phase != input::TouchPhase::Ended && touch.phase != input::TouchPhase::Cancelled);
+        // and collapse all events into the last event received by id
+        let mut map = HashMap::with_capacity(self.touches.len());
+        for touch in self.touches.iter() {
+            if touch.phase == input::TouchPhase::Ended || touch.phase == input::TouchPhase::Cancelled {
+                map.remove(&touch.id);
+                continue;
+            }
+            map.insert(touch.id, touch.clone());
+        }
+
+        self.touches = map.into_values().collect();
 
         // change all Started or Moved touches to Stationary
-        for touch in self.touches.values_mut() {
+        for touch in &mut self.touches {
             if touch.phase == input::TouchPhase::Started || touch.phase == input::TouchPhase::Moved {
                 touch.phase = input::TouchPhase::Stationary;
             }
@@ -509,14 +518,11 @@ impl EventHandler for Stage {
         // Only generate move events if the left mouse button is down
         if context.simulate_touch_with_mouse && context.mouse_down.contains(&MouseButton::Left) {
             let id = 0; // Use a consistent ID for mouse-simulated touch
-            context.touches.insert(
+            context.touches.push(input::Touch {
                 id,
-                input::Touch {
-                    id,
-                    phase: input::TouchPhase::Moved,
-                    position: Vec2::new(x, y),
-                },
-            );
+                phase: input::TouchPhase::Moved,
+                position: Vec2::new(x, y),
+            });
 
             context.input_events.iter_mut().for_each(|arr| {
                 arr.push(MiniquadInputEvent::Touch {
@@ -563,14 +569,11 @@ impl EventHandler for Stage {
         // Generate touch events when simulate_touch_with_mouse is enabled
         if context.simulate_touch_with_mouse && btn == MouseButton::Left {
             let id = 0; // Use a consistent ID for mouse-simulated touch
-            context.touches.insert(
+            context.touches.push(input::Touch {
                 id,
-                input::Touch {
-                    id,
-                    phase: input::TouchPhase::Started,
-                    position: Vec2::new(x, y),
-                },
-            );
+                phase: input::TouchPhase::Started,
+                position: Vec2::new(x, y),
+            });
 
             context.input_events.iter_mut().for_each(|arr| {
                 arr.push(MiniquadInputEvent::Touch {
@@ -601,14 +604,11 @@ impl EventHandler for Stage {
         // Generate touch events when simulate_touch_with_mouse is enabled
         if context.simulate_touch_with_mouse && btn == MouseButton::Left {
             let id = 0; // Use a consistent ID for mouse-simulated touch
-            context.touches.insert(
+            context.touches.push(input::Touch {
                 id,
-                input::Touch {
-                    id,
-                    phase: input::TouchPhase::Ended,
-                    position: Vec2::new(x, y),
-                },
-            );
+                phase: input::TouchPhase::Ended,
+                position: Vec2::new(x, y),
+            });
 
             context.input_events.iter_mut().for_each(|arr| {
                 arr.push(MiniquadInputEvent::Touch {
@@ -628,14 +628,11 @@ impl EventHandler for Stage {
     fn touch_event(&mut self, phase: TouchPhase, id: u64, x: f32, y: f32) {
         let context = get_context();
 
-        context.touches.insert(
+        context.touches.push(input::Touch {
             id,
-            input::Touch {
-                id,
-                phase: phase.into(),
-                position: Vec2::new(x, y),
-            },
-        );
+            phase: phase.into(),
+            position: Vec2::new(x, y),
+        });
 
         context
             .input_events
@@ -780,7 +777,7 @@ impl EventHandler for Stage {
         context.keys_released.extend(context.keys_down.drain());
 
         // Announce all touches as released
-        for (_, touch) in context.touches.iter_mut() {
+        for touch in context.touches.iter_mut() {
             touch.phase = input::TouchPhase::Ended;
         }
 
