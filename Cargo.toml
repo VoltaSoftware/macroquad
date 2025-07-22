@@ -16,12 +16,6 @@ log-rs = ["log"]
 glam-serde = ["glam/serde"]
 default = []
 
-[package.metadata.android]
-assets = "examples/"
-
-[profile.dev.package."*"]
-opt-level = 3
-
 [package.metadata.docs.rs]
 all-features = true
 
@@ -29,7 +23,6 @@ all-features = true
 miniquad = { git = "https://github.com/VoltaSoftware/miniquad", branch = "master", features = ["log-impl"] }
 #miniquad = { path = '../../miniquad', features = ["log-impl"] }
 
-quad-rand = "0.2.3"
 glam = { version = "0.30.3", features = ["scalar-math"] }
 macroquad_macro = { version = "0.1.8", path = "macroquad_macro" }
 fontdue = "0.9"
@@ -42,7 +35,7 @@ smallvec = "1.15.0"
 # workaround to fix the examples
 # this allows to use macroquad-particles in examples without two versions of macroquad
 [patch.crates-io]
-macroquad = { path = './' }
+#macroquad = { path = './' }
 
 #quad-snd = {path = '../quad-snd'}
 #miniquad = { path = '../miniquad' }
