@@ -666,7 +666,7 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) -
             continue;
         }
 
-        if enable_markup && c == '[' {
+        if c == '[' {
             let (action, next_pos) = parse_markup(&chars, i); // parse_markup needs to be in scope
             match action {
                 MarkupResult::Noop => {}
@@ -695,7 +695,11 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) -
                     current_word_width_scaled = 0.0;
 
                     color_stack.push(color);
-                    color = new_color;
+
+                    if enable_markup {
+                        color = new_color;
+                    }
+
                     i = next_pos;
                     continue;
                 }
@@ -720,7 +724,10 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) -
                     word_buffer.clear();
                     current_word_width_scaled = 0.0;
 
-                    color = color_stack.pop().unwrap_or(original_color);
+                    if enable_markup {
+                        color = color_stack.pop().unwrap_or(original_color);
+                    }
+
                     i = next_pos;
                     continue;
                 }
