@@ -12,6 +12,7 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 
 [features]
+#audio = ["quad-snd"]
 log-rs = ["log"]
 glam-serde = ["glam/serde"]
 default = []
@@ -20,8 +21,8 @@ default = []
 all-features = true
 
 [dependencies]
-miniquad = { git = "https://github.com/VoltaSoftware/miniquad", branch = "master", features = ["log-impl"] }
-#miniquad = { path = '../../miniquad', features = ["log-impl"] }
+#miniquad = { git = "https://github.com/VoltaSoftware/miniquad", branch = "master", features = ["log-impl"] }
+miniquad = { path = '../../miniquad', features = ["log-impl"] }
 
 glam = { version = "0.30.3", features = ["scalar-math"] }
 macroquad_macro = { version = "0.1.8", path = "macroquad_macro" }
@@ -29,7 +30,8 @@ fontdue = "0.9"
 log = { version = "0.4", optional = true }
 png = { version = "0.17.16" }
 smallvec = "1.15.0"
-
+#quad-snd = { version = "0.2", optional = true }
+#quad-snd = { path = "../../quad-snd", optional = true }
 [dev-dependencies]
 
 # workaround to fix the examples
