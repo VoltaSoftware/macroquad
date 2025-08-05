@@ -21,8 +21,8 @@ default = []
 all-features = true
 
 [dependencies]
-#miniquad = { git = "https://github.com/VoltaSoftware/miniquad", branch = "master", features = ["log-impl"] }
-miniquad = { path = '../../miniquad', features = ["log-impl"] }
+miniquad = { git = "https://github.com/VoltaSoftware/miniquad", branch = "master", features = ["log-impl"] }
+#miniquad = { path = '../../miniquad', features = ["log-impl"] }
 
 glam = { version = "0.30.3", features = ["scalar-math"] }
 macroquad_macro = { version = "0.1.8", path = "macroquad_macro" }
