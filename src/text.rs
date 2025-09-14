@@ -124,7 +124,7 @@ impl Font {
     pub(crate) fn measure_text(
         &self,
         text: impl AsRef<str>,
-        font_size_unscaled: u16, // Renamed for clarity, assumed to be unscaled
+        font_size_unscaled: u16,
         font_scale_x: f32,
         font_scale_y: f32,
         max_line_width_unscaled: Option<f32>,
@@ -136,11 +136,9 @@ impl Font {
         }
 
         let dpi_scaling = miniquad::window::dpi_scale();
-        // Scaled font size for glyph caching and metrics, consistent with draw_text_ex
         let font_size_for_caching = (font_size_unscaled as f32 * dpi_scaling).ceil() as u16;
         let max_line_width_pixels = max_line_width_unscaled.map(|w| w * dpi_scaling);
 
-        // --- Cache all unique characters used in the text ---
         let unique_characters_from_text: std::collections::HashSet<char> = text.chars().collect();
         for character in unique_characters_from_text.iter() {
             if !self.contains(*character, font_size_for_caching) {
@@ -149,10 +147,9 @@ impl Font {
         }
 
         let font_characters = self.characters.borrow();
-        let atlas = self.atlas.borrow(); // Borrow atlas once if possible, or re-borrow as needed
+        let atlas = self.atlas.borrow();
 
-        // --- Calculate layout_line_height_scaled (uniform line height for advancing lines) ---
-        let new_line_padding = 2.0; // Scaled pixels, consistent with draw_text_ex
+        let new_line_padding = 2.0;
         let mut layout_line_height_scaled: f32 = 0.0;
         if !text.is_empty() {
             for character in unique_characters_from_text.iter() {
@@ -163,11 +160,9 @@ impl Font {
                 }
             }
             if layout_line_height_scaled == 0.0 {
-                // Fallback
                 layout_line_height_scaled = font_size_unscaled as f32 * font_scale_y * dpi_scaling;
             }
             if layout_line_height_scaled <= 0.0 {
-                // Ensure positive
                 layout_line_height_scaled = font_size_unscaled as f32 * dpi_scaling;
                 if layout_line_height_scaled <= 0.0 {
                     layout_line_height_scaled = 1.0 * dpi_scaling;
@@ -181,94 +176,70 @@ impl Font {
             layout_line_height_scaled / dpi_scaling
         };
 
-        // --- Initialize measurement variables ---
         let mut current_line_scaled_width: f32 = 0.0;
         let mut max_line_width_used_scaled: f32 = 0.0;
         let mut measured_lines_unscaled = Vec::new();
-        let mut overall_max_y_offset_scaled: f32 = f32::MIN; // For TextDimensions.offset_y
+        let mut overall_max_y_offset_scaled: f32 = f32::MIN;
 
         let mut current_word_width_scaled: f32 = 0.0;
-        // Store (char, advance_scaled, CharacterInfo) for word processing
         let mut word_buffer = smallvec::SmallVec::<[(char, f32, CharacterInfo); 32]>::new();
-
-        let mut current_y_baseline_tracking_scaled = 0.0; // Tracks current line's baseline y relative to start_y for total height
-
-        // Helper closure to "process" a character (measure its advance and update overall_max_y_offset_scaled)
-        let mut measure_char_metrics = |char_info: &CharacterInfo, scale_x: f32, scale_y: f32, current_max_y: &mut f32| -> f32 {
-            if let Some(glyph_data) = atlas.get(char_info.sprite) {
-                let char_offset_y_scaled = char_info.offset_y as f32 * scale_y;
-                let char_visual_max_y = glyph_data.rect.h * scale_y + char_offset_y_scaled;
-                *current_max_y = (*current_max_y).max(char_visual_max_y);
-            }
-            char_info.advance * scale_x
-        };
-
-        // Helper closure to flush word buffer (measure characters and add to current_line_scaled_width)
-        let mut flush_word_to_line = |buffer: &mut smallvec::SmallVec<[(char, f32, CharacterInfo); 32]>,
-                                      line_w: &mut f32,
-                                      word_w: &mut f32,
-                                      max_y: &mut f32,
-                                      f_scale_x: f32,
-                                      f_scale_y: f32| {
-            for (_c, precalculated_advance, char_info) in buffer.drain(..) {
-                // Re-calculate max_y for each char in word_buffer as it's "processed"
-                if let Some(glyph_data) = atlas.get(char_info.sprite) {
-                    let char_offset_y_s = char_info.offset_y as f32 * f_scale_y;
-                    let char_visual_max_y_s = glyph_data.rect.h * f_scale_y + char_offset_y_s;
-                    *max_y = (*max_y).max(char_visual_max_y_s);
-                }
-                *line_w += precalculated_advance;
-            }
-            *word_w = 0.0;
-        };
-
-        // Helper closure to break line
-        let mut break_line_action = |line_w: &mut f32,
-                                     max_line_w_used: &mut f32,
-                                     lines_vec: &mut Vec<glam::Vec2>,
-                                     y_baseline_tracker: &mut f32,
-                                     unscaled_h: f32,
-                                     scaled_h: f32,
-                                     dpi: f32| {
-            *max_line_w_used = (*max_line_w_used).max(*line_w);
-            lines_vec.push(glam::vec2(*line_w / dpi, unscaled_h));
-            *line_w = 0.0;
-            *y_baseline_tracker += scaled_h;
-        };
 
         let chars: smallvec::SmallVec<[char; 64]> = text.chars().collect();
         let length = chars.len();
         let mut i = 0;
 
         while i < length {
-            let c = chars[i];
+            let mut c = chars[i];
+
+            // Handle markup exactly like draw_text_ex (default: enabled)
+            if c == '[' {
+                let (action, next_pos) = parse_markup(&chars, i);
+                match action {
+                    MarkupResult::Noop => { /* treat as '[' literal below */ }
+                    MarkupResult::Literal(char_literal) => {
+                        c = char_literal; // continue with this literal char
+                    }
+                    MarkupResult::Push(_) | MarkupResult::Pop => {
+                        // Flush current word buffer to the line, like draw_text_ex does
+                        for (_c2, adv, char_info) in word_buffer.drain(..) {
+                            if let Some(glyph_data) = atlas.get(char_info.sprite) {
+                                let char_offset_y_s = char_info.offset_y as f32 * font_scale_y;
+                                let char_visual_max_y_s = glyph_data.rect.h * font_scale_y + char_offset_y_s;
+                                overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
+                            }
+                            current_line_scaled_width += adv;
+                        }
+                        current_word_width_scaled = 0.0;
+
+                        // Do not add a line here; just switch styles. Skip tag text.
+                        i = next_pos;
+                        continue;
+                    }
+                }
+            }
 
             if c == '\n' {
-                flush_word_to_line(
-                    &mut word_buffer,
-                    &mut current_line_scaled_width,
-                    &mut current_word_width_scaled,
-                    &mut overall_max_y_offset_scaled,
-                    font_scale_x,
-                    font_scale_y,
-                );
-                break_line_action(
-                    &mut current_line_scaled_width,
-                    &mut max_line_width_used_scaled,
-                    &mut measured_lines_unscaled,
-                    &mut current_y_baseline_tracking_scaled,
-                    unscaled_layout_line_h,
-                    layout_line_height_scaled,
-                    dpi_scaling,
-                );
+                // Flush buffered word and push a line ALWAYS (even if empty), matching draw_text_ex
+                for (_c2, adv, char_info) in word_buffer.drain(..) {
+                    if let Some(glyph_data) = atlas.get(char_info.sprite) {
+                        let char_offset_y_s = char_info.offset_y as f32 * font_scale_y;
+                        let char_visual_max_y_s = glyph_data.rect.h * font_scale_y + char_offset_y_s;
+                        overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
+                    }
+                    current_line_scaled_width += adv;
+                }
+                current_word_width_scaled = 0.0;
+
+                max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
+                measured_lines_unscaled.push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
+
+                current_line_scaled_width = 0.0;
                 i += 1;
                 continue;
             }
 
             if let Some(char_data) = font_characters.get(&(c, font_size_for_caching)).cloned() {
                 let advance_scaled = char_data.advance * font_scale_x;
-
-                // Update overall_max_y_offset_scaled for every character considered
                 if let Some(glyph_data) = atlas.get(char_data.sprite) {
                     let char_offset_y_s = char_data.offset_y as f32 * font_scale_y;
                     let char_visual_max_y_s = glyph_data.rect.h * font_scale_y + char_offset_y_s;
@@ -276,110 +247,105 @@ impl Font {
                 }
 
                 if c == ' ' || c == '\t' || c == '-' {
-                    // Word-breaking characters
-                    flush_word_to_line(
-                        &mut word_buffer,
-                        &mut current_line_scaled_width,
-                        &mut current_word_width_scaled,
-                        &mut overall_max_y_offset_scaled,
-                        font_scale_x,
-                        font_scale_y,
-                    );
+                    // Flush current buffered word into the line width first
+                    for (_c2, adv, char_info) in word_buffer.drain(..) {
+                        if let Some(glyph_data) = atlas.get(char_info.sprite) {
+                            let char_offset_y_s = char_info.offset_y as f32 * font_scale_y;
+                            let char_visual_max_y_s = glyph_data.rect.h * font_scale_y + char_offset_y_s;
+                            overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
+                        }
+                        current_line_scaled_width += adv;
+                    }
+                    current_word_width_scaled = 0.0;
 
                     if let Some(max_w_pixels) = max_line_width_pixels {
                         if current_line_scaled_width + advance_scaled > max_w_pixels && current_line_scaled_width > 0.0 {
-                            break_line_action(
-                                &mut current_line_scaled_width,
-                                &mut max_line_width_used_scaled,
-                                &mut measured_lines_unscaled,
-                                &mut current_y_baseline_tracking_scaled,
-                                unscaled_layout_line_h,
-                                layout_line_height_scaled,
-                                dpi_scaling,
-                            );
+                            // Current line is full, start new line
+                            max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
+                            measured_lines_unscaled.push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
+                            current_line_scaled_width = 0.0;
+
+                            // Skip leading space/tab on new line, but NOT '-'
                             if c == ' ' || c == '\t' {
-                                // Skip leading space/tab on new line
                                 i += 1;
                                 continue;
                             }
                         }
                     }
+
+                    // Add the breaking char to the current line
                     current_line_scaled_width += advance_scaled;
                 } else {
-                    // Regular character
+                    // Non-breaking character, check if we need to wrap the whole word
                     if let Some(max_w_pixels) = max_line_width_pixels {
                         if current_line_scaled_width + current_word_width_scaled + advance_scaled > max_w_pixels {
                             if current_line_scaled_width > 0.0 {
-                                // Current line has content, break before current word
-                                break_line_action(
-                                    &mut current_line_scaled_width,
-                                    &mut max_line_width_used_scaled,
-                                    &mut measured_lines_unscaled,
-                                    &mut current_y_baseline_tracking_scaled,
-                                    unscaled_layout_line_h,
-                                    layout_line_height_scaled,
-                                    dpi_scaling,
-                                );
-                                // Word buffer starts on new line
-                            } else {
-                                // Current line is empty, but word_buffer + c is too long. Break word_buffer char by char.
-                                for (wc, w_adv, w_cd) in word_buffer.drain(..) {
-                                    if current_line_scaled_width + w_adv > max_w_pixels && current_line_scaled_width > 0.0 {
-                                        break_line_action(
-                                            &mut current_line_scaled_width,
-                                            &mut max_line_width_used_scaled,
-                                            &mut measured_lines_unscaled,
-                                            &mut current_y_baseline_tracking_scaled,
-                                            unscaled_layout_line_h,
-                                            layout_line_height_scaled,
-                                            dpi_scaling,
-                                        );
+                                // Move entire word to next line
+                                max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
+                                measured_lines_unscaled.push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
+
+                                // Reset line width and flush word buffer to new line
+                                current_line_scaled_width = 0.0;
+                                for (_wc, w_adv, w_char_info) in word_buffer.drain(..) {
+                                    if let Some(glyph_data) = atlas.get(w_char_info.sprite) {
+                                        let char_offset_y_s = w_char_info.offset_y as f32 * font_scale_y;
+                                        let char_visual_max_y_s = glyph_data.rect.h * font_scale_y + char_offset_y_s;
+                                        overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
                                     }
-                                    // measure_char_metrics(&w_cd, font_scale_x, font_scale_y, &mut overall_max_y_offset_scaled); // Already done when added to buffer or above
                                     current_line_scaled_width += w_adv;
                                 }
-                                current_word_width_scaled = 0.0; // Word buffer is now empty
+                                current_word_width_scaled = 0.0;
+                            } else {
+                                // Word is too long for empty line, break it character by character
+                                for (_wc, w_adv, w_char_info) in word_buffer.drain(..) {
+                                    if current_line_scaled_width + w_adv > max_w_pixels && current_line_scaled_width > 0.0 {
+                                        max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
+                                        measured_lines_unscaled
+                                            .push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
+                                        current_line_scaled_width = 0.0;
+                                    }
+                                    if let Some(glyph_data) = atlas.get(w_char_info.sprite) {
+                                        let char_offset_y_s = w_char_info.offset_y as f32 * font_scale_y;
+                                        let char_visual_max_y_s = glyph_data.rect.h * font_scale_y + char_offset_y_s;
+                                        overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
+                                    }
+                                    current_line_scaled_width += w_adv;
+                                }
+                                current_word_width_scaled = 0.0;
 
-                                // Check if current char 'c' itself needs to wrap on the (potentially new) line
                                 if current_line_scaled_width + advance_scaled > max_w_pixels && current_line_scaled_width > 0.0 {
-                                    break_line_action(
-                                        &mut current_line_scaled_width,
-                                        &mut max_line_width_used_scaled,
-                                        &mut measured_lines_unscaled,
-                                        &mut current_y_baseline_tracking_scaled,
-                                        unscaled_layout_line_h,
-                                        layout_line_height_scaled,
-                                        dpi_scaling,
-                                    );
+                                    max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
+                                    measured_lines_unscaled
+                                        .push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
+                                    current_line_scaled_width = 0.0;
                                 }
                             }
                         }
                     }
+
+                    // Add character to word buffer
                     word_buffer.push((c, advance_scaled, char_data.clone()));
                     current_word_width_scaled += advance_scaled;
                 }
             }
+
             i += 1;
         }
 
-        // After loop, process any remaining word_buffer for the last line
-        flush_word_to_line(
-            &mut word_buffer,
-            &mut current_line_scaled_width,
-            &mut current_word_width_scaled,
-            &mut overall_max_y_offset_scaled,
-            font_scale_x,
-            font_scale_y,
-        );
+        // End: flush remaining word and push last line mirroring draw_text_ex
+        for (_c2, adv, char_info) in word_buffer.drain(..) {
+            if let Some(glyph_data) = atlas.get(char_info.sprite) {
+                let char_offset_y_s = char_info.offset_y as f32 * font_scale_y;
+                let char_visual_max_y_s = glyph_data.rect.h * font_scale_y + char_offset_y_s;
+                overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
+            }
+            current_line_scaled_width += adv;
+        }
+        current_word_width_scaled = 0.0;
 
-        // Add the last line's dimensions
+        max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
         if current_line_scaled_width > 0.0 || (measured_lines_unscaled.is_empty() && !text.is_empty()) {
-            max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
             measured_lines_unscaled.push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
-        } else if measured_lines_unscaled.is_empty() && !text.is_empty() && layout_line_height_scaled > 0.0 {
-            // Case: text is not empty, but all characters had zero advance (e.g. only newlines, or only spaces that got wrapped and skipped)
-            // Still, it occupies one line of height.
-            measured_lines_unscaled.push(glam::vec2(0.0, unscaled_layout_line_h));
         }
 
         let final_width_unscaled = if measured_lines_unscaled.is_empty() {
@@ -391,9 +357,7 @@ impl Font {
         let calculated_total_height_unscaled = if measured_lines_unscaled.is_empty() {
             0.0
         } else {
-            // current_y_baseline_tracking_scaled is sum of (N-1) * layout_line_height_scaled
-            // Add one more layout_line_height_scaled for the last line's height.
-            (current_y_baseline_tracking_scaled + layout_line_height_scaled) / dpi_scaling
+            (measured_lines_unscaled.len() as f32 * layout_line_height_scaled) / dpi_scaling
         };
 
         let final_offset_y_unscaled = if overall_max_y_offset_scaled == f32::MIN {
