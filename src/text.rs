@@ -184,9 +184,27 @@ impl Font {
         let mut current_word_width_scaled: f32 = 0.0;
         let mut word_buffer = smallvec::SmallVec::<[(char, f32, CharacterInfo); 32]>::new();
 
+        // Track characters added to current line for trimming trailing whitespace
+        let mut current_line_chars = smallvec::SmallVec::<[(char, f32); 64]>::new();
+
         let chars: smallvec::SmallVec<[char; 64]> = text.chars().collect();
         let length = chars.len();
         let mut i = 0;
+
+        // Helper function to trim trailing whitespace from current line
+        let mut trim_trailing_whitespace = |line_width: &mut f32, line_chars: &mut smallvec::SmallVec<[(char, f32); 64]>| -> f32 {
+            let mut trimmed_width = 0.0;
+            while let Some(&(c, advance)) = line_chars.last() {
+                if c == ' ' || c == '\t' {
+                    *line_width -= advance;
+                    trimmed_width += advance;
+                    line_chars.pop();
+                } else {
+                    break;
+                }
+            }
+            trimmed_width
+        };
 
         while i < length {
             let mut c = chars[i];
@@ -208,6 +226,7 @@ impl Font {
                                 overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
                             }
                             current_line_scaled_width += adv;
+                            current_line_chars.push((_c2, adv));
                         }
                         current_word_width_scaled = 0.0;
 
@@ -227,6 +246,7 @@ impl Font {
                         overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
                     }
                     current_line_scaled_width += adv;
+                    current_line_chars.push((_c2, adv));
                 }
                 current_word_width_scaled = 0.0;
 
@@ -234,6 +254,7 @@ impl Font {
                 measured_lines_unscaled.push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
 
                 current_line_scaled_width = 0.0;
+                current_line_chars.clear();
                 i += 1;
                 continue;
             }
@@ -255,15 +276,19 @@ impl Font {
                             overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
                         }
                         current_line_scaled_width += adv;
+                        current_line_chars.push((_c2, adv));
                     }
                     current_word_width_scaled = 0.0;
 
                     if let Some(max_w_pixels) = max_line_width_pixels {
                         if current_line_scaled_width + advance_scaled > max_w_pixels && current_line_scaled_width > 0.0 {
-                            // Current line is full, start new line
+                            // Current line is full, start new line - trim trailing whitespace first
+                            trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
+
                             max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
                             measured_lines_unscaled.push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
                             current_line_scaled_width = 0.0;
+                            current_line_chars.clear();
 
                             // Skip leading space/tab on new line, but NOT '-'
                             if c == ' ' || c == '\t' {
@@ -275,17 +300,21 @@ impl Font {
 
                     // Add the breaking char to the current line
                     current_line_scaled_width += advance_scaled;
+                    current_line_chars.push((c, advance_scaled));
                 } else {
                     // Non-breaking character, check if we need to wrap the whole word
                     if let Some(max_w_pixels) = max_line_width_pixels {
                         if current_line_scaled_width + current_word_width_scaled + advance_scaled > max_w_pixels {
                             if current_line_scaled_width > 0.0 {
-                                // Move entire word to next line
+                                // Move entire word to next line - trim trailing whitespace first
+                                trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
+
                                 max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
                                 measured_lines_unscaled.push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
 
                                 // Reset line width and flush word buffer to new line
                                 current_line_scaled_width = 0.0;
+                                current_line_chars.clear();
                                 for (_wc, w_adv, w_char_info) in word_buffer.drain(..) {
                                     if let Some(glyph_data) = atlas.get(w_char_info.sprite) {
                                         let char_offset_y_s = w_char_info.offset_y as f32 * font_scale_y;
@@ -293,16 +322,21 @@ impl Font {
                                         overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
                                     }
                                     current_line_scaled_width += w_adv;
+                                    current_line_chars.push((_wc, w_adv));
                                 }
                                 current_word_width_scaled = 0.0;
                             } else {
                                 // Word is too long for empty line, break it character by character
                                 for (_wc, w_adv, w_char_info) in word_buffer.drain(..) {
                                     if current_line_scaled_width + w_adv > max_w_pixels && current_line_scaled_width > 0.0 {
+                                        // Trim trailing whitespace before wrapping
+                                        trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
+
                                         max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
                                         measured_lines_unscaled
                                             .push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
                                         current_line_scaled_width = 0.0;
+                                        current_line_chars.clear();
                                     }
                                     if let Some(glyph_data) = atlas.get(w_char_info.sprite) {
                                         let char_offset_y_s = w_char_info.offset_y as f32 * font_scale_y;
@@ -310,14 +344,19 @@ impl Font {
                                         overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
                                     }
                                     current_line_scaled_width += w_adv;
+                                    current_line_chars.push((_wc, w_adv));
                                 }
                                 current_word_width_scaled = 0.0;
 
                                 if current_line_scaled_width + advance_scaled > max_w_pixels && current_line_scaled_width > 0.0 {
+                                    // Trim trailing whitespace before wrapping
+                                    trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
+
                                     max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
                                     measured_lines_unscaled
                                         .push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
                                     current_line_scaled_width = 0.0;
+                                    current_line_chars.clear();
                                 }
                             }
                         }
@@ -340,8 +379,12 @@ impl Font {
                 overall_max_y_offset_scaled = overall_max_y_offset_scaled.max(char_visual_max_y_s);
             }
             current_line_scaled_width += adv;
+            current_line_chars.push((_c2, adv));
         }
         current_word_width_scaled = 0.0;
+
+        // Trim trailing whitespace from the final line before measuring
+        trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
 
         max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
         if current_line_scaled_width > 0.0 || (measured_lines_unscaled.is_empty() && !text.is_empty()) {
