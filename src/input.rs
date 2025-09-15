@@ -136,3 +136,12 @@ pub fn prevent_quit() {
 pub fn is_quit_requested() -> bool {
     get_context().quit_requested
 }
+
+pub fn _debug_mouse_position() -> (f32, f32) {
+    let context = get_context();
+
+    (
+        context._mouse_position.x / miniquad::window::dpi_scale(),
+        context._mouse_position.y / miniquad::window::dpi_scale(),
+    )
+}

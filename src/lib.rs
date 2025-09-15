@@ -177,6 +177,7 @@ struct Context {
     mouse_down: HashSet<MouseButton>,
     mouse_pressed: HashSet<MouseButton>,
     mouse_released: HashSet<MouseButton>,
+    _mouse_position: Vec2,
     touches: Vec<input::Touch>,
     chars_pressed_queue: Vec<char>,
     chars_pressed_ui_queue: Vec<char>,
@@ -314,6 +315,7 @@ impl Context {
             mouse_released: HashSet::new(),
             touches: Vec::new(),
             mouse_wheel: vec2(0., 0.),
+            _mouse_position: vec2(0., 0.),
 
             prevent_quit_event: false,
             quit_requested: false,
@@ -508,6 +510,8 @@ impl EventHandler for Stage {
             .input_events
             .iter_mut()
             .for_each(|arr| arr.push(MiniquadInputEvent::MouseMotion { x, y }));
+
+        context._mouse_position = Vec2::new(x, y);
 
         // Generate touch events when simulate_touch_with_mouse is enabled
         // Only generate move events if the left mouse button is down
