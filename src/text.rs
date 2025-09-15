@@ -32,7 +32,7 @@ pub(crate) struct CharacterInfo {
 pub struct Font {
     font: Rc<fontdue::Font>,
     atlas: Rc<RefCell<Atlas>>,
-    characters: Rc<RefCell<HashMap<(char, u16), CharacterInfo>>>,
+    characters: Rc<RefCell<Vec<Option<CharacterInfo>>>>,
 }
 
 /// World space dimensions of the text, measured by "measure_text" function
@@ -843,68 +843,36 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) {
                                 }
                                 current_word_width_scaled = 0.0; // word_buffer is now empty.
 
-                            if current_line_scaled_width + advance_scaled > max_w_pixels && current_line_scaled_width > 0.0 {
-                                max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
-                                new_line_dimensions_unscaled
-                                    .push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
-                                current_x = start_x;
-                                current_y += layout_line_height_scaled;
-                                current_line_scaled_width = 0.0;
+                                if current_line_scaled_width + advance_scaled > max_line_width_pixels && current_line_scaled_width > 0.0 {
+                                    current_x = start_x;
+                                    current_y += layout_line_height_scaled;
+                                    current_line_scaled_width = 0.0;
+                                }
                             }
                         }
                     }
+                    word_buffer.push((c, advance_scaled, char_data.clone()));
+                    current_word_width_scaled += advance_scaled;
                 }
-                word_buffer.push((c, advance_scaled, char_data.clone()));
-                current_word_width_scaled += advance_scaled;
             }
+            i += 1;
         }
-        i += 1;
-    }
 
-    render_word(
-        &mut word_buffer,
-        &font_characters,
-        &mut atlas,
-        &mut current_x,
-        &mut current_y,
-        &mut max_offset_y_scaled,
-        &mut min_offset_y_scaled,
-        rot,
-        rot_cos,
-        rot_sin,
-        font_scale_x,
-        font_scale_y,
-        dpi_scaling,
-        color,
-    );
-    current_line_scaled_width += current_word_width_scaled;
-
-    max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
-    if current_line_scaled_width > 0.0 || (new_line_dimensions_unscaled.is_empty() && !text.is_empty()) {
-        new_line_dimensions_unscaled.push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
-    }
-
-    // Total height calculation (unscaled)
-    let calculated_total_height_unscaled = if text.is_empty() {
-        0.0
-    } else {
-        // (current_y - start_y) is sum of (N-1) * layout_line_height_scaled if N lines.
-        // Add one more layout_line_height_scaled for the last line.
-        // All these are scaled, so divide by dpi_scaling for unscaled.
-        ((current_y - start_y) + layout_line_height_scaled) / dpi_scaling
-    };
-
-    let final_offset_y_unscaled = if max_offset_y_scaled == f32::MIN {
-        0.0
-    } else {
-        max_offset_y_scaled / dpi_scaling
-    };
-
-    TextDimensions {
-        width: max_line_width_used_scaled / dpi_scaling,
-        height: calculated_total_height_unscaled,
-        offset_y: final_offset_y_unscaled,
-        line_widths: new_line_dimensions_unscaled,
+        render_word(
+            &mut word_buffer,
+            &mut atlas,
+            &mut current_x,
+            &mut current_y,
+            &mut max_offset_y_scaled,
+            &mut min_offset_y_scaled,
+            rot,
+            rot_cos,
+            rot_sin,
+            font_scale_x,
+            font_scale_y,
+            dpi_scaling,
+            color,
+        );
     }
 }
 
@@ -1071,8 +1039,6 @@ pub fn camera_font_scale(world_font_size: f32) -> (u16, f32, f32) {
 
     (font_size, cam_h / scr_h, scr_h / scr_w * cam_w / cam_h)
 }
-
-use smallvec::SmallVec;
 
 enum MarkupResult {
     Literal(char),
