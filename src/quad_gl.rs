@@ -958,13 +958,20 @@ mod shader {
     use miniquad::{ShaderMeta, UniformBlockLayout, UniformDesc, UniformType};
 
     pub const VERTEX: &str = r#"#version 100
+
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    #else
+    precision mediump float;
+    #endif
+
     attribute vec3 position;
     attribute vec2 texcoord;
     attribute vec4 color0;
     attribute vec4 normal;
 
-    varying lowp vec2 uv;
-    varying lowp vec4 color;
+    varying vec2 uv;
+    varying vec4 color;
 
     uniform mat4 Model;
     uniform mat4 Projection;
@@ -976,13 +983,21 @@ mod shader {
     }"#;
 
     pub const FRAGMENT: &str = r#"#version 100
-    varying lowp vec4 color;
-    varying lowp vec2 uv;
+
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    #else
+    precision mediump float;
+    #endif
+
+    varying vec4 color;
+    varying vec2 uv;
 
     uniform sampler2D Texture;
 
     void main() {
         gl_FragColor = color * texture2D(Texture, uv) ;
+        if (gl_FragColor.a < 0.02) discard;
     }"#;
 
     pub const METAL: &str = r#"
