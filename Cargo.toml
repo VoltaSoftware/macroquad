@@ -29,6 +29,8 @@ macroquad_macro = { version = "0.1.8", path = "macroquad_macro" }
 fontdue = "0.9"
 log = { version = "0.4", optional = true }
 png = { version = "0.17.16" }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+
 #quad-snd = { version = "0.2", optional = true }
 #quad-snd = { path = "../../quad-snd", optional = true }
 [dev-dependencies]
