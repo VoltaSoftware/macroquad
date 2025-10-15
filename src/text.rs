@@ -152,7 +152,7 @@ impl Font {
                 return TextDimensions::default();
             }
 
-            let dpi_scaling = miniquad::window::dpi_scale();
+            let dpi_scaling = 1.0;//miniquad::window::dpi_scale();
             let font_size_for_caching = (font_size_unscaled as f32 * dpi_scaling).ceil() as u16;
             let max_line_width_pixels = max_line_width_unscaled.map(|w| w * dpi_scaling);
 
@@ -580,7 +580,7 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) {
 
         let font = params.font.unwrap_or_else(|| &get_context().fonts_storage.default_font);
 
-        let dpi_scaling = miniquad::window::dpi_scale();
+        let dpi_scaling = 1.0;//miniquad::window::dpi_scale();
 
         let rot = params.rotation;
         let font_scale_x = params.font_scale * params.font_scale_aspect;
