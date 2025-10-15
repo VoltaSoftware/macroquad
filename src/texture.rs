@@ -111,7 +111,8 @@ impl Image {
         let decoder = Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info()?;
 
-        let mut buf = vec![0; reader.output_buffer_size()];
+        let output_size = reader.output_buffer_size().expect("Should have output size");
+        let mut buf = vec![0; output_size];
         let info = reader.next_frame(&mut buf)?;
 
         let width = info.width as u16;
@@ -650,7 +651,8 @@ impl Texture2D {
         let decoder = Decoder::new(Cursor::new(bytes));
         let mut reader = decoder.read_info().expect("Failed to read image info");
 
-        let mut buf = vec![0; reader.output_buffer_size()];
+        let output_size = reader.output_buffer_size().expect("Should have output size");
+        let mut buf = vec![0; output_size];
         let info = reader.next_frame(&mut buf).expect("Failed to read image frame");
 
         let width = info.width as u16;
