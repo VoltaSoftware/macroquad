@@ -145,3 +145,29 @@ pub fn _debug_mouse_position() -> (f32, f32) {
         context._mouse_position.y / miniquad::window::dpi_scale(),
     )
 }
+
+/// Functions for advanced input processing.
+///
+/// Functions in this module should be used by external tools that uses miniquad system, like different UI libraries. User shouldn't use this function.
+pub mod utils {
+    use crate::get_context;
+
+    /// Register input subscriber. Returns subscriber identifier that must be used in `repeat_all_miniquad_input`.
+    pub fn register_input_subscriber() -> usize {
+        let context = get_context();
+
+        context.input_events.push(vec![]);
+
+        context.input_events.len() - 1
+    }
+
+    /// Repeats all events that came since last call of this function with current value of `subscriber`. This function must be called at each frame.
+    pub fn repeat_all_miniquad_input<T: miniquad::EventHandler>(t: &mut T, subscriber: usize) {
+        let context = get_context();
+
+        for event in &context.input_events[subscriber] {
+            event.repeat(t);
+        }
+        context.input_events[subscriber].clear();
+    }
+}
