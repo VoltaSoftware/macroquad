@@ -47,7 +47,6 @@ mod exec;
 mod quad_gl;
 mod tobytes;
 
-pub mod audio;
 pub mod camera;
 pub mod color;
 pub mod file;
@@ -164,8 +163,6 @@ pub(crate) mod thread_assert {
     }
 }
 struct Context {
-    audio_context: audio::AudioContext,
-
     screen_width: f32,
     screen_height: f32,
 
@@ -328,8 +325,6 @@ impl Context {
             fonts_storage: text::FontsStorage::new(&mut *ctx),
             texture_batcher: texture::Batcher::new(&mut *ctx),
             camera_stack: vec![],
-
-            audio_context: audio::AudioContext::new(),
 
             pc_assets_folder: None,
 

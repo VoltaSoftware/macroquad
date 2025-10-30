@@ -12,7 +12,6 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 
 [features]
-#audio = ["quad-snd"]
 log-rs = ["log"]
 glam-serde = ["glam/serde"]
 default = []
@@ -31,17 +30,7 @@ log = { version = "0.4", optional = true }
 png = { version = "0.18.0" }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 
-#quad-snd = { version = "0.2", optional = true }
-#quad-snd = { path = "../../quad-snd", optional = true }
 [dev-dependencies]
 
-# workaround to fix the examples
-# this allows to use macroquad-particles in examples without two versions of macroquad
 [patch.crates-io]
-#macroquad = { path = './' }
-
-#quad-snd = {path = '../quad-snd'}
-#miniquad = { path = '../miniquad' }
-#miniquad = { git = "https://github.com/not-fl3/miniquad", branch = "msaa_render_texture" }
-#quad-gl = {path = './quad-gl'}
 
