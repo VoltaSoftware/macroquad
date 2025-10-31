@@ -748,8 +748,6 @@ impl EventHandler for Stage {
         let context = get_context();
 
         #[cfg(target_os = "android")]
-        context.audio_context.resume();
-        #[cfg(target_os = "android")]
         if miniquad::window::blocking_event_loop() {
             miniquad::window::schedule_update();
         }
@@ -762,9 +760,6 @@ impl EventHandler for Stage {
 
     fn window_minimized_event(&mut self) {
         let context = get_context();
-
-        #[cfg(target_os = "android")]
-        context.audio_context.pause();
 
         // Clear held down keys and button and announce them as released
         context.mouse_released.extend(context.mouse_down.drain());

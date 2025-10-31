@@ -840,7 +840,6 @@ impl QuadGl {
             draw_call.texture != self.state.texture
                 || draw_call.clip != self.state.clip
                 || draw_call.viewport != self.state.viewport
-                || draw_call.model != self.state.model()
                 || draw_call.pipeline != pip
                 || draw_call.render_pass != self.state.render_pass
                 || draw_call.draw_mode != self.state.draw_mode
@@ -848,6 +847,7 @@ impl QuadGl {
                 || draw_call.indices_count >= self.max_indices - indices.len()
                 || draw_call.capture != self.state.capture
                 || self.state.break_batching
+                || draw_call.model != self.state.model()
         }) {
             let uniforms = self.state.pipeline.map_or(None, |pipeline| {
                 Some(self.pipelines.get_quad_pipeline_mut(pipeline).uniforms_data.clone())

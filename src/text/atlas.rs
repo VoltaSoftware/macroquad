@@ -1,5 +1,6 @@
 use crate::{get_context, get_quad_context, math::Rect, texture::Image, Color};
 
+use ahash::AHashMap;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]
@@ -15,7 +16,7 @@ pub enum SpriteKey {
 pub struct Atlas {
     texture: miniquad::TextureId,
     image: Image,
-    pub sprites: HashMap<SpriteKey, Sprite>,
+    pub sprites: AHashMap<SpriteKey, Sprite>,
     cursor_x: u16,
     cursor_y: u16,
     max_line_height: u16,
@@ -41,7 +42,7 @@ impl Atlas {
     const UNIQUENESS_OFFSET: u64 = 100000;
 
     pub fn new(ctx: &mut dyn miniquad::RenderingBackend, filter: miniquad::FilterMode) -> Atlas {
-        let image = Image::gen_image_color(512, 512, Color::new(0.0, 0.0, 0.0, 0.0));
+        let image = Image::gen_image_color(256, 128, Color::new(0.0, 0.0, 0.0, 0.0));
         let texture = ctx.new_texture_from_rgba8(image.width, image.height, &image.bytes);
         ctx.texture_set_filter(texture, miniquad::FilterMode::Nearest, miniquad::MipmapFilterMode::None);
 
@@ -52,7 +53,7 @@ impl Atlas {
             cursor_y: 0,
             dirty: false,
             max_line_height: 0,
-            sprites: HashMap::new(),
+            sprites: AHashMap::new(),
             filter,
             unique_id: Self::UNIQUENESS_OFFSET,
         }
@@ -70,8 +71,8 @@ impl Atlas {
         ctx.texture_set_filter(self.texture, filter_mode, miniquad::MipmapFilterMode::None);
     }
 
-    pub fn get(&self, key: SpriteKey) -> Option<Sprite> {
-        self.sprites.get(&key).cloned()
+    pub fn get(&self, key: SpriteKey) -> Option<&Sprite> {
+        self.sprites.get(&key)
     }
 
     pub const fn width(&self) -> u16 {
