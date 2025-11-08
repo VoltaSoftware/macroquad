@@ -901,3 +901,8 @@ pub struct DroppedFile {
     pub path: Option<std::path::PathBuf>,
     pub bytes: Option<Vec<u8>>,
 }
+
+pub fn _debug_draw_calls() -> usize {
+    let context = get_context();
+    context.gl.total_draw_calls
+}
