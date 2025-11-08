@@ -366,6 +366,7 @@ impl Context {
 
         get_quad_context().clear(Some((color.r, color.g, color.b, color.a)), None, None);
         self.gl.reset();
+        self.gl.total_draw_calls = 0;
     }
 
     fn end_frame(&mut self) {

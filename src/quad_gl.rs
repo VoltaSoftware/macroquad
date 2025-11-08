@@ -541,6 +541,7 @@ pub struct QuadGl {
 
     batch_vertex_buffer: Vec<Vertex>,
     batch_index_buffer: Vec<u16>,
+    pub total_draw_calls: usize,
 }
 
 impl QuadGl {
@@ -572,6 +573,8 @@ impl QuadGl {
             batch_index_buffer: Vec::with_capacity(max_indices),
             max_vertices,
             max_indices,
+
+            total_draw_calls: 0,
         }
     }
 
@@ -741,6 +744,7 @@ impl QuadGl {
             dc.indices_start = 0;
         }
 
+        self.total_draw_calls += self.draw_calls_count;
         self.draw_calls_count = 0;
         self.batch_index_buffer.clear();
         self.batch_vertex_buffer.clear();
