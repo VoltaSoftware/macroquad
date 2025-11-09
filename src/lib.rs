@@ -49,7 +49,6 @@ mod tobytes;
 
 pub mod camera;
 pub mod color;
-pub mod file;
 pub mod input;
 pub mod material;
 pub mod math;
@@ -445,16 +444,6 @@ impl Context {
 #[no_mangle]
 static mut CONTEXT: Option<Context> = None;
 
-// This is required for #[macroquad::test]
-//
-// unfortunately #[cfg(test)] do not work with integration tests
-// so this module should be publicly available
-#[doc(hidden)]
-pub mod test {
-    pub static mut MUTEX: Option<std::sync::Mutex<()>> = None;
-    pub static ONCE: std::sync::Once = std::sync::Once::new();
-}
-
 fn get_context() -> &'static mut Context {
     thread_assert::same_thread();
 
@@ -701,16 +690,6 @@ impl EventHandler for Stage {
         {
             // TODO: consider making it a part of miniquad?
             //std::thread::yield_now();
-        }
-    }
-
-    fn files_dropped_event(&mut self) {
-        let context = get_context();
-        for i in 0..miniquad::window::dropped_file_count() {
-            context.dropped_files.push(DroppedFile {
-                path: miniquad::window::dropped_file_path(i),
-                bytes: miniquad::window::dropped_file_bytes(i),
-            });
         }
     }
 

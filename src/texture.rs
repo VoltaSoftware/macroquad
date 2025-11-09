@@ -1,6 +1,6 @@
 //! Loading and rendering textures. Also render textures, per-pixel image manipulations.
 
-use crate::{color::Color, file::load_file, get_context, get_quad_context, math::Rect, text::atlas::SpriteKey, Error};
+use crate::{color::Color, get_context, get_quad_context, math::Rect, text::atlas::SpriteKey, Error};
 use std::fs::File;
 use std::io::{BufWriter, Cursor};
 
@@ -312,20 +312,6 @@ impl Image {
     }
 }
 
-/// Loads an [Image] from a file into CPU memory.
-pub async fn load_image(path: &str) -> Result<Image, Error> {
-    let bytes = load_file(path).await?;
-
-    Image::from_file_with_format(&bytes)
-}
-
-/// Loads a [Texture2D] from a file into GPU memory.
-pub async fn load_texture(path: &str) -> Result<Texture2D, Error> {
-    let bytes = load_file(path).await?;
-
-    Ok(Texture2D::from_file_with_format(&bytes[..]))
-}
-
 #[derive(Debug, Clone)]
 pub struct RenderPass {
     pub color_texture: Texture2D,
@@ -500,7 +486,7 @@ pub fn draw_texture_ex(texture: &Texture2D, x: f32, y: f32, color: Color, params
         h: height,
     });
 
-    let texture_opt = context.texture_batcher.get(texture).map(|(batched_texture, uv)| {
+    /*    let texture_opt = context.texture_batcher.get(texture).map(|(batched_texture, uv)| {
         let batched_texture_size = batched_texture.size();
         let batched_width = batched_texture_size.x;
         let batched_height = batched_texture_size.y;
@@ -513,8 +499,8 @@ pub fn draw_texture_ex(texture: &Texture2D, x: f32, y: f32, color: Color, params
         height = batched_height;
 
         batched_texture
-    });
-    let texture = texture_opt.as_ref().unwrap_or(texture);
+    });*/
+    let texture = texture; //texture_opt.as_ref().unwrap_or(texture);
 
     let (mut w, mut h) = match &params.dest_size {
         Some(dst) => (dst.x, dst.y),

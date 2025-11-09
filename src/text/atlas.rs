@@ -42,7 +42,7 @@ impl Atlas {
     const UNIQUENESS_OFFSET: u64 = 100000;
 
     pub fn new(ctx: &mut dyn miniquad::RenderingBackend, filter: miniquad::FilterMode) -> Atlas {
-        let image = Image::gen_image_color(256, 128, Color::new(0.0, 0.0, 0.0, 0.0));
+        let image = Image::gen_image_color(1024, 256, Color::new(0.0, 0.0, 0.0, 0.0));
         let texture = ctx.new_texture_from_rgba8(image.width, image.height, &image.bytes);
         ctx.texture_set_filter(texture, miniquad::FilterMode::Nearest, miniquad::MipmapFilterMode::None);
 
@@ -84,9 +84,10 @@ impl Atlas {
     }
 
     pub fn texture(&mut self) -> miniquad::TextureId {
-        let ctx = get_quad_context();
         if self.dirty {
             self.dirty = false;
+
+            let ctx = get_quad_context();
             let (texture_width, texture_height) = ctx.texture_size(self.texture);
             if texture_width != self.image.width as _ || texture_height != self.image.height as _ {
                 ctx.delete_texture(self.texture);

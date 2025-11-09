@@ -1,7 +1,6 @@
 //! Most common types that can be glob-imported `use macroquad::prelude::*` for convenience.
 
 pub use crate::camera::*;
-pub use crate::file::*;
 pub use crate::input::*;
 pub use crate::material::*;
 pub use crate::math::*;

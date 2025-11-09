@@ -8,13 +8,11 @@ use crate::{
     Error,
 };
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::color::WHITE;
 use glam::vec2;
 
-use std::sync::{Arc, Mutex};
 pub(crate) mod atlas;
 
 use atlas::{Atlas, SpriteKey};
@@ -97,19 +95,16 @@ impl Font {
     }
 
     pub(crate) fn cache_glyph(&self, character: char, size: u16) {
-        if self.contains(character, size) {
-            return;
-        }
-
         let (metrics, bitmap) = self.font.rasterize(character, size as f32);
 
         let (width, height) = (metrics.width as u16, metrics.height as u16);
 
-        let sprite = self.atlas.borrow_mut().new_unique_id();
-        self.atlas.borrow_mut().cache_sprite(
+        let mut atlas = self.atlas.borrow_mut();
+        let sprite = atlas.new_unique_id();
+        atlas.cache_sprite(
             sprite,
             Image {
-                bytes: bitmap.iter().flat_map(|coverage| vec![255, 255, 255, *coverage]).collect(),
+                bytes: bitmap.into_iter().flat_map(|coverage| vec![255, 255, 255, coverage]).collect(),
                 width,
                 height,
             },
@@ -152,7 +147,7 @@ impl Font {
                 return TextDimensions::default();
             }
 
-            let dpi_scaling = 1.0;//miniquad::window::dpi_scale();
+            let dpi_scaling = 1.0; //miniquad::window::dpi_scale();
             let font_size_for_caching = (font_size_unscaled as f32 * dpi_scaling).ceil() as u16;
             let max_line_width_pixels = max_line_width_unscaled.map(|w| w * dpi_scaling);
 
@@ -527,15 +522,6 @@ impl<'a> Default for TextParams<'a> {
     }
 }
 
-/// Load font from file with "path"
-pub async fn load_ttf_font(path: &str) -> Result<Font, Error> {
-    let bytes = crate::file::load_file(path)
-        .await
-        .map_err(|_| Error::FontError("The Font file couldn't be loaded"))?;
-
-    load_ttf_font_from_bytes(&bytes[..])
-}
-
 /// Load font from bytes array, may be use in combination with include_bytes!
 /// ```ignore
 /// let font = load_ttf_font_from_bytes(include_bytes!("font.ttf"));
@@ -580,7 +566,7 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) {
 
         let font = params.font.unwrap_or_else(|| &get_context().fonts_storage.default_font);
 
-        let dpi_scaling = 1.0;//miniquad::window::dpi_scale();
+        let dpi_scaling = 1.0; //miniquad::window::dpi_scale();
 
         let rot = params.rotation;
         let font_scale_x = params.font_scale * params.font_scale_aspect;
@@ -939,7 +925,7 @@ fn render_character(
     let offset_x = char_data.offset_x as f32 * font_scale_x;
     let offset_y = char_data.offset_y as f32 * font_scale_y;
 
-    let glyph = atlas.get(char_data.sprite).as_ref().unwrap().rect;
+    let glyph = unsafe { atlas.get(char_data.sprite).as_ref().unwrap_unchecked().rect };
     let glyph_scaled_h = glyph.h * font_scale_y;
 
     *min_offset_y = (*min_offset_y).min(offset_y);

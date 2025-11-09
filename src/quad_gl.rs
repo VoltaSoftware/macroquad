@@ -255,7 +255,7 @@ struct GlState {
 
 impl GlState {
     fn model(&self) -> glam::Mat4 {
-        *self.model_stack.last().unwrap()
+        self.model_stack[0]
     }
 }
 
@@ -637,7 +637,7 @@ impl QuadGl {
     pub fn reset(&mut self) {
         self.state.clip = None;
         self.state.texture = None;
-        self.state.model_stack = vec![glam::Mat4::IDENTITY];
+        //self.state.model_stack = vec![glam::Mat4::IDENTITY];
 
         self.draw_calls_count = 0;
     }
@@ -795,16 +795,6 @@ impl QuadGl {
         self.state
             .viewport
             .unwrap_or((0, 0, crate::window::screen_width() as _, crate::window::screen_height() as _))
-    }
-
-    pub fn push_model_matrix(&mut self, matrix: glam::Mat4) {
-        self.state.model_stack.push(self.state.model() * matrix);
-    }
-
-    pub fn pop_model_matrix(&mut self) {
-        if self.state.model_stack.len() > 1 {
-            self.state.model_stack.pop();
-        }
     }
 
     pub fn pipeline(&mut self, pipeline: Option<GlPipeline>) {
