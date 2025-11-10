@@ -1,6 +1,6 @@
 //! Loading and rendering textures. Also render textures, per-pixel image manipulations.
 
-use crate::{color::Color, get_context, get_quad_context, math::Rect, text::atlas::SpriteKey, Error};
+use crate::{color::Color, get_context, get_quad_context, math::Rect, Error};
 use std::fs::File;
 use std::io::{BufWriter, Cursor};
 
@@ -817,57 +817,20 @@ impl Texture2D {
 
 pub(crate) struct Batcher {
     unbatched: Vec<Texture2D>,
-    atlas: crate::text::atlas::Atlas,
 }
 
 impl Batcher {
     pub fn new(ctx: &mut dyn miniquad::RenderingBackend) -> Batcher {
-        Batcher {
-            unbatched: vec![],
-            atlas: crate::text::atlas::Atlas::new(ctx, miniquad::FilterMode::Linear),
-        }
+        Batcher { unbatched: vec![] }
     }
 
     pub fn add_unbatched(&mut self, texture: &Texture2D) {
         self.unbatched.push(texture.weak_clone());
     }
-
-    pub fn get(&mut self, texture: &Texture2D) -> Option<(Texture2D, Rect)> {
-        let id = SpriteKey::Texture(texture.raw_miniquad_id());
-        let uv_rect = self.atlas.get_uv_rect(id)?;
-        Some((Texture2D::unmanaged(self.atlas.texture()), uv_rect))
-    }
-}
-
-/// Build an atlas out of all currently loaded texture
-/// Later on all draw_texture calls with texture available in the atlas will use
-/// the one from the atlas
-/// NOTE: the GPU memory and texture itself in Texture2D will still be allocated
-/// and Texture->Image conversions will work with Texture2D content, not the atlas
-pub fn build_textures_atlas() {
-    let context = get_context();
-
-    for texture in context.texture_batcher.unbatched.drain(0..) {
-        let sprite: Image = texture.get_texture_data();
-        let id = SpriteKey::Texture(texture.raw_miniquad_id());
-
-        context.texture_batcher.atlas.cache_sprite(id, sprite);
-    }
-}
-
-#[doc(hidden)]
-/// Macroquad do not have track of all loaded fonts.
-/// Fonts store their characters as ID's in the atlas.
-/// There fore resetting the atlas will render all fonts unusable.
-pub unsafe fn reset_textures_atlas() {
-    let context = get_context();
-    context.fonts_storage = crate::text::FontsStorage::new(&mut *context.quad_context);
-    context.texture_batcher = Batcher::new(&mut *context.quad_context);
 }
 
 pub fn set_default_filter_mode(filter: FilterMode) {
     let context = get_context();
 
     context.default_filter_mode = filter;
-    context.texture_batcher.atlas.set_filter(filter);
 }
