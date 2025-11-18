@@ -378,6 +378,7 @@ impl PipelinesStorage {
                 BlendFactor::Value(BlendValue::SourceAlpha),
                 BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
             )),
+            alpha_blend: Some(BlendState::new(Equation::Add, BlendFactor::Zero, BlendFactor::One)),
             ..Default::default()
         };
 
