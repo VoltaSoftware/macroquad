@@ -378,7 +378,7 @@ impl PipelinesStorage {
                 BlendFactor::Value(BlendValue::SourceAlpha),
                 BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
             )),
-            alpha_blend: Some(BlendState::new(Equation::Add, BlendFactor::Zero, BlendFactor::One)),
+            //alpha_blend: Some(BlendState::new(Equation::Add, BlendFactor::Zero, BlendFactor::One)), // Disabled this because it makes RenderTarget invisible when using scrollviews eg bank interface
             ..Default::default()
         };
 
