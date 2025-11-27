@@ -172,18 +172,18 @@ impl Font {
             let mut i = 0;
 
             // Helper function to trim trailing whitespace from current line
+            // Returns the untrimmed width (with spaces included)
             let mut trim_trailing_whitespace = |line_width: &mut f32, line_chars: &mut Vec<(char, f32)>| -> f32 {
-                let mut trimmed_width = 0.0;
+                let untrimmed_width = *line_width;
                 while let Some(&(c, advance)) = line_chars.last() {
                     if c == ' ' || c == '\t' {
                         *line_width -= advance;
-                        trimmed_width += advance;
                         line_chars.pop();
                     } else {
                         break;
                     }
                 }
-                trimmed_width
+                untrimmed_width
             };
 
             while i < length {
@@ -257,7 +257,8 @@ impl Font {
 
                     if let Some(max_w_pixels) = max_line_width_pixels {
                         if current_line_scaled_width + advance_scaled > max_w_pixels && current_line_scaled_width > 0.0 {
-                            // Current line is full, start new line - trim trailing whitespace first
+                            // Current line is full, start new line
+                            // Use trimmed width for max line tracking (display purposes)
                             trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
 
                             max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
@@ -281,11 +282,12 @@ impl Font {
                     if let Some(max_w_pixels) = max_line_width_pixels {
                         if current_line_scaled_width + current_word_width_scaled + advance_scaled > max_w_pixels {
                             if current_line_scaled_width > 0.0 {
-                                // Move entire word to next line - trim trailing whitespace first
-                                trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
+                                // Move entire word to next line
+                                // Use untrimmed width for max tracking
+                                let untrimmed = trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
 
-                                max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
-                                measured_lines_unscaled.push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
+                                max_line_width_used_scaled = max_line_width_used_scaled.max(untrimmed);
+                                measured_lines_unscaled.push(glam::vec2(untrimmed / dpi_scaling, unscaled_layout_line_h));
 
                                 // Reset line width and flush word buffer to new line
                                 current_line_scaled_width = 0.0;
@@ -303,12 +305,12 @@ impl Font {
                                 // Word is too long for empty line, break it character by character
                                 for (_wc, w_adv) in word_buffer.drain(..) {
                                     if current_line_scaled_width + w_adv > max_w_pixels && current_line_scaled_width > 0.0 {
-                                        // Trim trailing whitespace before wrapping
-                                        trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
+                                        // Use untrimmed width for max tracking
+                                        let untrimmed = trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
 
-                                        max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
+                                        max_line_width_used_scaled = max_line_width_used_scaled.max(untrimmed);
                                         measured_lines_unscaled
-                                            .push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
+                                            .push(glam::vec2(untrimmed / dpi_scaling, unscaled_layout_line_h));
                                         current_line_scaled_width = 0.0;
                                         current_line_chars.clear();
                                     }
@@ -322,12 +324,12 @@ impl Font {
                                 current_word_width_scaled = 0.0;
 
                                 if current_line_scaled_width + advance_scaled > max_w_pixels && current_line_scaled_width > 0.0 {
-                                    // Trim trailing whitespace before wrapping
-                                    trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
+                                    // Use untrimmed width for max tracking
+                                    let untrimmed = trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
 
-                                    max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
+                                    max_line_width_used_scaled = max_line_width_used_scaled.max(untrimmed);
                                     measured_lines_unscaled
-                                        .push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
+                                        .push(glam::vec2(untrimmed / dpi_scaling, unscaled_layout_line_h));
                                     current_line_scaled_width = 0.0;
                                     current_line_chars.clear();
                                 }
@@ -354,9 +356,7 @@ impl Font {
             }
             current_word_width_scaled = 0.0;
 
-            // Trim trailing whitespace from the final line before measuring
-            trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
-
+            // Don't trim trailing whitespace from the final line - we want the actual width with spaces
             max_line_width_used_scaled = max_line_width_used_scaled.max(current_line_scaled_width);
             if current_line_scaled_width > 0.0 || (measured_lines_unscaled.is_empty() && !text.is_empty()) {
                 measured_lines_unscaled.push(glam::vec2(current_line_scaled_width / dpi_scaling, unscaled_layout_line_h));
