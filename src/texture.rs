@@ -119,8 +119,9 @@ impl Image {
     ///     );
     /// ```
     pub fn from_file_with_format(bytes: &[u8]) -> Result<Image, Error> {
-        let decoder = Decoder::new(Cursor::new(bytes));
-        let mut reader = decoder.read_info()?;
+        let mut decoder = Decoder::new(Cursor::new(bytes));
+        decoder.set_transformations(png::Transformations::EXPAND | png::Transformations::ALPHA);
+        let mut reader = decoder.read_info().expect("Failed to read image info");
 
         let output_size = reader.output_buffer_size().expect("Should have output size");
         let mut buf = vec![0; output_size];

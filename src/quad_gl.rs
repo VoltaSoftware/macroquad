@@ -220,7 +220,7 @@ impl MagicSnapshotter {
                     .screen_texture
                     .map(|t| {
                         let (w, h) = ctx.texture_size(t);
-                        w != screen_width as _ || h != screen_height as _
+                        w != screen_width as u32  || h != screen_height as u32
                     })
                     .unwrap_or(false)
             {

@@ -1,5 +1,7 @@
 //! Functions to load fonts and draw text.
 
+use std::sync::OnceLock;
+
 use crate::{
     color::Color,
     get_context,
@@ -9,6 +11,7 @@ use crate::{
 
 use crate::color::WHITE;
 use glam::vec2;
+use serde::Deserialize;
 
 use crate::texture::Texture2D;
 
@@ -30,6 +33,36 @@ pub struct Font {
     character_regions: Vec<QuadFontCharacterInfo>,
     // NEW: maps extended ASCII byte (0..255) -> index into character_regions, or u16::MAX if missing.
     index_map: [u16; 256],
+}
+
+const DEFAULT_FONT_ATLAS: &[u8] = include_bytes!("../DefaultFont_atlas.png");
+const DEFAULT_FONT_ATLAS_DEF: &[u8] = include_bytes!("../DefaultFont_atlas.json");
+
+impl Default for Font {
+    fn default() -> Self {
+        let font_def = serde_json::from_slice::<EmbeddedFontDef>(DEFAULT_FONT_ATLAS_DEF).unwrap();
+
+        let char_regions: Vec<QuadFontCharacterInfo> = font_def
+            .characters
+            .iter()
+            .map(|r| QuadFontCharacterInfo {
+                width: r.width,
+                height: r.height,
+                offset_x: r.offset_x,
+                offset_y: r.offset_y,
+                advance: r.advance,
+                region: crate::math::Rect {
+                    x: r.region.x as f32,
+                    y: r.region.y as f32,
+                    w: r.region.w as f32,
+                    h: r.region.h as f32,
+                },
+            })
+            .collect();
+
+        let atlas = Texture2D::from_file_with_format(DEFAULT_FONT_ATLAS);
+        load_ttf_font_from_bytes(16.0, atlas, char_regions).unwrap()
+    }
 }
 
 /// World space dimensions of the text, measured by "measure_text" function
@@ -309,8 +342,7 @@ impl Font {
                                         let untrimmed = trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
 
                                         max_line_width_used_scaled = max_line_width_used_scaled.max(untrimmed);
-                                        measured_lines_unscaled
-                                            .push(glam::vec2(untrimmed / dpi_scaling, unscaled_layout_line_h));
+                                        measured_lines_unscaled.push(glam::vec2(untrimmed / dpi_scaling, unscaled_layout_line_h));
                                         current_line_scaled_width = 0.0;
                                         current_line_chars.clear();
                                     }
@@ -328,8 +360,7 @@ impl Font {
                                     let untrimmed = trim_trailing_whitespace(&mut current_line_scaled_width, &mut current_line_chars);
 
                                     max_line_width_used_scaled = max_line_width_used_scaled.max(untrimmed);
-                                    measured_lines_unscaled
-                                        .push(glam::vec2(untrimmed / dpi_scaling, unscaled_layout_line_h));
+                                    measured_lines_unscaled.push(glam::vec2(untrimmed / dpi_scaling, unscaled_layout_line_h));
                                     current_line_scaled_width = 0.0;
                                     current_line_chars.clear();
                                 }
@@ -437,6 +468,12 @@ pub fn load_ttf_font_from_bytes(font_size: f32, atlas: Texture2D, character_regi
     Ok(font)
 }
 
+fn get_default_font() -> &'static Font {
+    static DEFAULT: OnceLock<Font> = OnceLock::new();
+    DEFAULT.get_or_init(Font::default)
+}
+
+
 pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) {
     unsafe {
         let text = text.as_ref();
@@ -445,7 +482,10 @@ pub fn draw_text_ex(text: impl AsRef<str>, x: f32, y: f32, params: TextParams) {
             return;
         }
 
-        let font = params.font.unwrap_unchecked();
+        let font = match params.font {
+            Some(f) => f,
+            None => get_default_font(),
+        };
 
         let dpi_scaling = 1.0; //miniquad::window::dpi_scale();
 
@@ -953,4 +993,30 @@ fn parse_markup(chars: &[char], pos: usize) -> (MarkupResult, usize) {
     }
 
     (MarkupResult::Noop, pos + 1)
+}
+
+#[derive(Copy, Clone, Debug, Default, Deserialize)]
+struct AtlasRegion {
+    /// Horizontal position the rectangle begins at.
+    pub x: u16,
+    /// Vertical position the rectangle begins at.
+    pub y: u16,
+    /// Width of the rectangle.
+    pub w: u16,
+    /// Height of the rectangle.
+    pub h: u16,
+}
+#[derive(Debug, Deserialize)]
+struct EmbeddedFontCharacterInfo {
+    pub width: u8,
+    pub height: u8,
+    pub advance: f32,
+    pub offset_x: f32,
+    pub offset_y: f32,
+    pub region: AtlasRegion,
+}
+
+#[derive(Debug, Deserialize)]
+struct EmbeddedFontDef {
+    pub characters: Vec<EmbeddedFontCharacterInfo>,
 }
