@@ -140,10 +140,7 @@ pub fn is_quit_requested() -> bool {
 pub fn _debug_mouse_position() -> (f32, f32) {
     let context = get_context();
 
-    (
-        context._mouse_position.x / miniquad::window::dpi_scale(),
-        context._mouse_position.y / miniquad::window::dpi_scale(),
-    )
+    (context._mouse_position.x, context._mouse_position.y)
 }
 
 /// Functions for advanced input processing.

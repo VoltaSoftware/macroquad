@@ -487,12 +487,17 @@ impl EventHandler for Stage {
     fn mouse_motion_event(&mut self, x: f32, y: f32) {
         let context = get_context();
 
+        // Normalize from physical pixels (miniquad) to logical pixels (macroquad API)
+        let dpi = miniquad::window::dpi_scale();
+        let lx = x / dpi;
+        let ly = y / dpi;
+
         context
             .input_events
             .iter_mut()
-            .for_each(|arr| arr.push(MiniquadInputEvent::MouseMotion { x, y }));
+            .for_each(|arr| arr.push(MiniquadInputEvent::MouseMotion { x: lx, y: ly }));
 
-        context._mouse_position = Vec2::new(x, y);
+        context._mouse_position = Vec2::new(lx, ly);
 
         // Generate touch events when simulate_touch_with_mouse is enabled
         // Only generate move events if the left mouse button is down
@@ -501,15 +506,15 @@ impl EventHandler for Stage {
             context.touches.push(input::Touch {
                 id,
                 phase: input::TouchPhase::Moved,
-                position: Vec2::new(x, y),
+                position: Vec2::new(lx, ly),
             });
 
             context.input_events.iter_mut().for_each(|arr| {
                 arr.push(MiniquadInputEvent::Touch {
                     phase: TouchPhase::Moved,
                     id,
-                    x,
-                    y,
+                    x: lx,
+                    y: ly,
                 })
             });
         }
@@ -538,13 +543,18 @@ impl EventHandler for Stage {
     fn mouse_button_down_event(&mut self, btn: MouseButton, x: f32, y: f32) {
         let context = get_context();
 
+        // Normalize from physical pixels (miniquad) to logical pixels (macroquad API)
+        let dpi = miniquad::window::dpi_scale();
+        let lx = x / dpi;
+        let ly = y / dpi;
+
         context.mouse_down.insert(btn);
         context.mouse_pressed.insert(btn);
 
         context
             .input_events
             .iter_mut()
-            .for_each(|arr| arr.push(MiniquadInputEvent::MouseButtonDown { x, y, btn }));
+            .for_each(|arr| arr.push(MiniquadInputEvent::MouseButtonDown { x: lx, y: ly, btn }));
 
         // Generate touch events when simulate_touch_with_mouse is enabled
         if context.simulate_touch_with_mouse && btn == MouseButton::Left {
@@ -552,15 +562,15 @@ impl EventHandler for Stage {
             context.touches.push(input::Touch {
                 id,
                 phase: input::TouchPhase::Started,
-                position: Vec2::new(x, y),
+                position: Vec2::new(lx, ly),
             });
 
             context.input_events.iter_mut().for_each(|arr| {
                 arr.push(MiniquadInputEvent::Touch {
                     phase: TouchPhase::Started,
                     id,
-                    x,
-                    y,
+                    x: lx,
+                    y: ly,
                 })
             });
         }
@@ -573,13 +583,18 @@ impl EventHandler for Stage {
     fn mouse_button_up_event(&mut self, btn: MouseButton, x: f32, y: f32) {
         let context = get_context();
 
+        // Normalize from physical pixels (miniquad) to logical pixels (macroquad API)
+        let dpi = miniquad::window::dpi_scale();
+        let lx = x / dpi;
+        let ly = y / dpi;
+
         context.mouse_down.remove(&btn);
         context.mouse_released.insert(btn);
 
         context
             .input_events
             .iter_mut()
-            .for_each(|arr| arr.push(MiniquadInputEvent::MouseButtonUp { x, y, btn }));
+            .for_each(|arr| arr.push(MiniquadInputEvent::MouseButtonUp { x: lx, y: ly, btn }));
 
         // Generate touch events when simulate_touch_with_mouse is enabled
         if context.simulate_touch_with_mouse && btn == MouseButton::Left {
@@ -587,15 +602,15 @@ impl EventHandler for Stage {
             context.touches.push(input::Touch {
                 id,
                 phase: input::TouchPhase::Ended,
-                position: Vec2::new(x, y),
+                position: Vec2::new(lx, ly),
             });
 
             context.input_events.iter_mut().for_each(|arr| {
                 arr.push(MiniquadInputEvent::Touch {
                     phase: TouchPhase::Ended,
                     id,
-                    x,
-                    y,
+                    x: lx,
+                    y: ly,
                 })
             });
         }
@@ -608,16 +623,21 @@ impl EventHandler for Stage {
     fn touch_event(&mut self, phase: TouchPhase, id: u64, x: f32, y: f32) {
         let context = get_context();
 
+        // Normalize from physical pixels (miniquad) to logical pixels (macroquad API)
+        let dpi = miniquad::window::dpi_scale();
+        let lx = x / dpi;
+        let ly = y / dpi;
+
         context.touches.push(input::Touch {
             id,
             phase: phase.into(),
-            position: Vec2::new(x, y),
+            position: Vec2::new(lx, ly),
         });
 
         context
             .input_events
             .iter_mut()
-            .for_each(|arr| arr.push(MiniquadInputEvent::Touch { phase, id, x, y }));
+            .for_each(|arr| arr.push(MiniquadInputEvent::Touch { phase, id, x: lx, y: ly }));
 
         if context.update_on.touch {
             miniquad::window::schedule_update();
