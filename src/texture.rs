@@ -363,6 +363,19 @@ pub struct RenderTarget {
     pub render_pass: RenderPass,
 }
 
+impl RenderTarget {
+    /// Read RGBA pixel data from this render target into `buf`.
+    ///
+    /// Delegates to miniquad's `texture_read_pixels` which creates a
+    /// lightweight temporary FBO, attaches the texture, and calls
+    /// `glReadPixels` — avoiding the `begin_pass`/`end_render_pass`
+    /// lifecycle that triggers expensive TBDR tile load/store on mobile GPUs.
+    pub fn read_pixels(&self, buf: &mut [u8]) {
+        let ctx = get_quad_context();
+        ctx.texture_read_pixels(self.texture.raw_miniquad_id(), buf);
+    }
+}
+
 /// A shortcut to create a render target with sample_count: 1 and no depth buffer
 pub fn render_target(width: u32, height: u32) -> RenderTarget {
     render_target_ex(width, height, RenderTargetParams::default())
