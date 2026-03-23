@@ -77,7 +77,7 @@ pub struct TextDimensions {
     /// For reference check "text_measures" example.
     pub offset_y: f32,
     /// Width and height of each individual line in the text. Each `Vec2` stores (unscaled_width, unscaled_layout_height).
-    pub line_widths: Vec<glam::Vec2>,
+    pub per_line_dimensions: Vec<glam::Vec2>,
 }
 
 impl std::fmt::Debug for Font {
@@ -415,7 +415,7 @@ impl Font {
                 width: final_width_unscaled,
                 height: calculated_total_height_unscaled,
                 offset_y: final_offset_y_unscaled,
-                line_widths: measured_lines_unscaled,
+                per_line_dimensions: measured_lines_unscaled,
             }
         }
     }
