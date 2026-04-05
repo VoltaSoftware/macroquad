@@ -180,6 +180,7 @@ struct Context {
 
     prevent_quit_event: bool,
     quit_requested: bool,
+    window_focused: bool,
 
     input_events: Vec<Vec<MiniquadInputEvent>>,
 
@@ -312,6 +313,7 @@ impl Context {
 
             prevent_quit_event: false,
             quit_requested: false,
+            window_focused: true,
 
             input_events: Vec::new(),
 
@@ -742,6 +744,7 @@ impl EventHandler for Stage {
 
     fn window_restored_event(&mut self) {
         let context = get_context();
+        context.window_focused = true;
 
         #[cfg(target_os = "android")]
         if miniquad::window::blocking_event_loop() {
@@ -756,6 +759,7 @@ impl EventHandler for Stage {
 
     fn window_minimized_event(&mut self) {
         let context = get_context();
+        context.window_focused = false;
 
         // Clear held down keys and button and announce them as released
         context.mouse_released.extend(context.mouse_down.drain());

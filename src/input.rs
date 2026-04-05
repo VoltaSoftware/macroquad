@@ -52,6 +52,30 @@ pub fn touches() -> Vec<Touch> {
     get_context().touches.clone()
 }
 
+/// Returns whether the game window currently has focus.
+pub fn is_window_focused() -> bool {
+    get_context().window_focused
+}
+
+/// Override the window focus state. Used by platforms (e.g. web) that detect
+/// focus changes outside of miniquad's event system.
+pub fn set_window_focused(focused: bool) {
+    get_context().window_focused = focused;
+}
+
+/// Clear all input state: touches, mouse buttons, and held keys.
+/// After calling this, held inputs will not be seen again until the user
+/// physically releases and re-presses them (mouse/keyboard) or until the
+/// platform sends new touch events (mobile).
+pub fn clear_all_input_state() {
+    let context = get_context();
+    context.mouse_released.extend(context.mouse_down.drain());
+    context.keys_released.extend(context.keys_down.drain());
+    for touch in context.touches.iter_mut() {
+        touch.phase = TouchPhase::Ended;
+    }
+}
+
 pub fn mouse_wheel() -> (f32, f32) {
     let context = get_context();
 
