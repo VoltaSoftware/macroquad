@@ -245,6 +245,7 @@ struct GlState {
     model_stack: Vec<glam::Mat4>,
     pipeline: Option<GlPipeline>,
     depth_test_enable: bool,
+    draw_depth: f32,
 
     break_batching: bool,
     snapshotter: MagicSnapshotter,
@@ -560,6 +561,7 @@ impl QuadGl {
                 pipeline: None,
                 break_batching: false,
                 depth_test_enable: false,
+                draw_depth: 0.0,
                 snapshotter: MagicSnapshotter::new(ctx),
                 render_pass: None,
                 capture: false,
@@ -777,6 +779,14 @@ impl QuadGl {
 
     pub fn depth_test(&mut self, enable: bool) {
         self.state.depth_test_enable = enable;
+    }
+
+    pub fn set_draw_depth(&mut self, z: f32) {
+        self.state.draw_depth = z;
+    }
+
+    pub fn draw_depth(&self) -> f32 {
+        self.state.draw_depth
     }
 
     pub fn texture(&mut self, texture: Option<&Texture2D>) {
@@ -1032,7 +1042,9 @@ mod shader {
 
     fragment float4 fragmentShader(RasterizerData in [[stage_in]], texture2d<float> tex [[texture(0)]], sampler texSmplr [[sampler(0)]])
     {
-        return in.color * tex.sample(texSmplr, in.uv);
+        float4 c = in.color * tex.sample(texSmplr, in.uv);
+        if (c.a < 0.02) discard_fragment();
+        return c;
     }
     "#;
     pub fn uniforms() -> Vec<(&'static str, UniformType)> {

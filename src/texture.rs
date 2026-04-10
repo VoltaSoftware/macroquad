@@ -8,6 +8,13 @@ pub use crate::quad_gl::FilterMode;
 use crate::quad_gl::{DrawMode, Vertex};
 use glam::{vec2, Vec2};
 use png::{BitDepth, ColorType, Decoder, Encoder};
+
+/// Set the Z depth value used for all subsequent draw calls.
+/// Higher Z values appear in front when depth testing is enabled.
+pub fn set_draw_depth(z: f32) {
+    let context = get_context();
+    context.gl.set_draw_depth(z);
+}
 use slotmap::{TextureIdSlotMap, TextureSlotId};
 use std::sync::Arc;
 
@@ -548,12 +555,13 @@ pub fn draw_texture_ex(texture: &Texture2D, x: f32, y: f32, color: Color, params
         vec2(p[2].x * r_cos - p[2].y * r_sin, p[2].x * r_sin + p[2].y * r_cos) + m,
         vec2(p[3].x * r_cos - p[3].y * r_sin, p[3].x * r_sin + p[3].y * r_cos) + m,
     ];
+    let z = context.gl.draw_depth();
     #[rustfmt::skip]
     let vertices = [
-        Vertex::new(p[0].x, p[0].y, 0.,  sx      /width,  sy      /height, color),
-        Vertex::new(p[1].x, p[1].y, 0., (sx + sw)/width,  sy      /height, color),
-        Vertex::new(p[2].x, p[2].y, 0., (sx + sw)/width, (sy + sh)/height, color),
-        Vertex::new(p[3].x, p[3].y, 0.,  sx      /width, (sy + sh)/height, color),
+        Vertex::new(p[0].x, p[0].y, z,  sx      /width,  sy      /height, color),
+        Vertex::new(p[1].x, p[1].y, z, (sx + sw)/width,  sy      /height, color),
+        Vertex::new(p[2].x, p[2].y, z, (sx + sw)/width, (sy + sh)/height, color),
+        Vertex::new(p[3].x, p[3].y, z,  sx      /width, (sy + sh)/height, color),
     ];
     let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
 

@@ -8,11 +8,12 @@ use glam::{vec2, vec3, vec4, Mat4, Vec2};
 /// Draws a solid triangle between points `v1`, `v2`, and `v3` with a given `color`.
 pub fn draw_triangle(v1: Vec2, v2: Vec2, v3: Vec2, color: Color) {
     let context = get_context();
+    let z = context.gl.draw_depth();
 
     let vertices = [
-        Vertex::new(v1.x, v1.y, 0., 0., 0., color),
-        Vertex::new(v2.x, v2.y, 0., 0., 0., color),
-        Vertex::new(v3.x, v3.y, 0., 0., 0., color),
+        Vertex::new(v1.x, v1.y, z, 0., 0., color),
+        Vertex::new(v2.x, v2.y, z, 0., 0., color),
+        Vertex::new(v3.x, v3.y, z, 0., 0., color),
     ];
 
     let indices: [u16; 3] = [0, 1, 2];
@@ -33,13 +34,14 @@ pub fn draw_triangle_lines(v1: Vec2, v2: Vec2, v3: Vec2, thickness: f32, color: 
 /// the right, height going down), with a given `color`.
 pub fn draw_rectangle(x: f32, y: f32, w: f32, h: f32, color: Color) {
     let context = get_context();
+    let z = context.gl.draw_depth();
 
     #[rustfmt::skip]
     let vertices = [
-        Vertex::new(x    , y    , 0., 0.0, 0.0, color),
-        Vertex::new(x + w, y    , 0., 1.0, 0.0, color),
-        Vertex::new(x + w, y + h, 0., 1.0, 1.0, color),
-        Vertex::new(x    , y + h, 0., 0.0, 1.0, color),
+        Vertex::new(x    , y    , z, 0.0, 0.0, color),
+        Vertex::new(x + w, y    , z, 1.0, 0.0, color),
+        Vertex::new(x + w, y + h, z, 1.0, 1.0, color),
+        Vertex::new(x    , y + h, z, 0.0, 1.0, color),
     ];
     let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
@@ -53,18 +55,19 @@ pub fn draw_rectangle(x: f32, y: f32, w: f32, h: f32, color: Color) {
 pub fn draw_rectangle_lines(x: f32, y: f32, w: f32, h: f32, thickness: f32, color: Color) {
     let context = get_context();
     let t = thickness / 2.;
+    let z = context.gl.draw_depth();
 
     #[rustfmt::skip]
     let vertices = [
-        Vertex::new(x    , y    , 0., 0.0, 1.0, color),
-        Vertex::new(x + w, y    , 0., 1.0, 0.0, color),
-        Vertex::new(x + w, y + h, 0., 1.0, 1.0, color),
-        Vertex::new(x    , y + h, 0., 0.0, 0.0, color),
+        Vertex::new(x    , y    , z, 0.0, 1.0, color),
+        Vertex::new(x + w, y    , z, 1.0, 0.0, color),
+        Vertex::new(x + w, y + h, z, 1.0, 1.0, color),
+        Vertex::new(x    , y + h, z, 0.0, 0.0, color),
         //inner rectangle
-        Vertex::new(x + t    , y + t    , 0., 0.0, 0.0, color),
-        Vertex::new(x + w - t, y + t    , 0., 0.0, 0.0, color),
-        Vertex::new(x + w - t, y + h - t, 0., 0.0, 0.0, color),
-        Vertex::new(x + t    , y + h - t, 0., 0.0, 0.0, color),
+        Vertex::new(x + t    , y + t    , z, 0.0, 0.0, color),
+        Vertex::new(x + w - t, y + t    , z, 0.0, 0.0, color),
+        Vertex::new(x + w - t, y + h - t, z, 0.0, 0.0, color),
+        Vertex::new(x + t    , y + h - t, z, 0.0, 0.0, color),
     ];
     let indices: [u16; 24] = [0, 1, 4, 1, 4, 5, 1, 5, 6, 1, 2, 6, 3, 7, 2, 2, 7, 6, 0, 4, 3, 3, 4, 7];
 
